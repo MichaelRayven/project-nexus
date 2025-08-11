@@ -1,4 +1,3 @@
-
 # Which version of the consensus rules to use
 version: 3
 
@@ -39,4 +38,3 @@ pull_requests:
 
   # Voters need to be collaborators for the project.
   collaborators_only: true
-    
