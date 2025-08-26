@@ -1,12 +1,7 @@
-import { HomeLayout } from "@/components/layout/home";
+import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { baseOptions } from "@/lib/layout.shared";
-import {
-  NavbarMenu,
-  NavbarMenuContent,
-  NavbarMenuLink,
-  NavbarMenuTrigger,
-} from "fumadocs-ui/layouts/home/navbar";
 import { BookIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
@@ -20,6 +15,11 @@ export default function Layout({ children }: LayoutProps<"/">) {
           url: "/docs",
           active: "nested-url",
           secondary: false,
+        },
+        {
+          type: "custom",
+          children: <Button>Login</Button>,
+          secondary: true,
         },
       ]}
     >
