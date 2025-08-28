@@ -14,8 +14,20 @@ import {
 } from "./ui/form";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { desc } from "drizzle-orm";
 import { Textarea } from "./ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import { trpc } from "@/trpc/client";
+import { CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
+import { AddSubjectDialog } from "./add-subject-dialog";
 
 const formSchema = z.object({
   title: z
@@ -34,6 +46,7 @@ const formSchema = z.object({
     .max(4096, {
       message: "Описание не может быть длиннее 4096 символов",
     }),
+  subject: z.string(),
 });
 
 export function IssueForm() {
@@ -43,8 +56,11 @@ export function IssueForm() {
     defaultValues: {
       title: "",
       description: "",
+      subject: "",
     },
   });
+
+  const { data: subjects, isError } = trpc.subjectList.useQuery();
 
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -64,8 +80,7 @@ export function IssueForm() {
               <FormLabel>Название</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="shadcn"
-                  required
+                  placeholder="СиАОД Лаб. 6, вариант 1..."
                   maxLength={150}
                   {...field}
                 />
@@ -85,7 +100,7 @@ export function IssueForm() {
               <FormLabel>Описание</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="shadcn"
+                  placeholder="Опишите задачу в деталях, чтобы выполняющие ее знали, что делать..."
                   maxLength={4096}
                   minLength={100}
                   {...field}
@@ -93,6 +108,89 @@ export function IssueForm() {
               </FormControl>
               <FormDescription>
                 This is your public display name.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="subject"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Предмет</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-[200px] justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? subjects?.find(
+                            (subject) => subject.id === field.value
+                          )?.name
+                        : "Выбирите предемет..."}
+                      <ChevronsUpDown className="opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Поиск предмета..."
+                      className="h-9"
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        Предмет не найден.{" "}
+                        <AddSubjectDialog
+                          trigger={
+                            <p className="underline underline-offset-4 cursor-pointer">
+                              Добавить предмет?
+                            </p>
+                          }
+                        />
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {subjects?.map((subject) => (
+                          <CommandItem
+                            value={subject.id}
+                            key={subject.id}
+                            onSelect={() => {
+                              form.setValue("subject", subject.id);
+                            }}
+                          >
+                            {subject.name}
+                            <CheckIcon
+                              className={cn(
+                                "ml-auto",
+                                subject.id === field.value
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                        <AddSubjectDialog
+                          trigger={
+                            <CommandItem className="cursor-pointer w-full">
+                              <PlusIcon />
+                              <span>Добавить предмет</span>
+                            </CommandItem>
+                          }
+                        />
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                This is the language that will be used in the dashboard.
               </FormDescription>
               <FormMessage />
             </FormItem>
