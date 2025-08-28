@@ -8,10 +8,9 @@ export function LogInButton() {
   const handleClick = async () => {
     await authClient.signIn.social({
       provider: "github",
-      callbackURL: "/dashboard",
+      callbackURL: "/",
       errorCallbackURL: "/error",
       newUserCallbackURL: "/welcome",
-      disableRedirect: true,
     });
   };
 

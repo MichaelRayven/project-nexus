@@ -1,5 +1,18 @@
 import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
+export const subject = pgTable("subject", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+});
+
+export const teacher = pgTable("teacher", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  surname: text("surname").notNull(),
+  paternal: text("paternal").notNull(),
+  email: text("email").notNull().unique(),
+});
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
