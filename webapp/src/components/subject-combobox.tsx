@@ -18,14 +18,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { trpc } from "@/trpc/client";
 
 export function SubjectCombobox() {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
 
+  const { data: subjects, isError } = trpc.subjectList.useQuery();
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      {/* <PopoverTrigger asChild>
+      <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
@@ -33,7 +36,7 @@ export function SubjectCombobox() {
           className="w-[200px] justify-between"
         >
           {value
-            ? frameworks.find((framework) => framework.value === value)?.label
+            ? subjects?.find((subject) => subject.id === value)?.name
             : "Выбирите предмет..."}
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -42,12 +45,14 @@ export function SubjectCombobox() {
         <Command>
           <CommandInput placeholder="Поиск по предмету..." />
           <CommandList>
-            <CommandEmpty>Предмет не найден.</CommandEmpty>
+            <CommandEmpty>
+              {isError ? "Ошибка, попробуйте позже" : "Ничего не найдено"}
+            </CommandEmpty>
             <CommandGroup>
-              {frameworks.map((framework) => (
+              {subjects?.map((subject) => (
                 <CommandItem
-                  key={framework.value}
-                  value={framework.value}
+                  key={subject.id}
+                  value={subject.id}
                   onSelect={(currentValue) => {
                     setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
@@ -56,16 +61,16 @@ export function SubjectCombobox() {
                   <CheckIcon
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === framework.value ? "opacity-100" : "opacity-0"
+                      value === subject.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {framework.label}
+                  {subject.name}
                 </CommandItem>
               ))}
             </CommandGroup>
           </CommandList>
         </Command>
-      </PopoverContent> */}
+      </PopoverContent>
     </Popover>
   );
 }
