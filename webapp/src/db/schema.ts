@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, unique } from "drizzle-orm/pg-core";
 
 export const subject = pgTable("subject", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -13,7 +13,9 @@ export const teacher = pgTable("teacher", {
   paternal: text("paternal").notNull(),
   email: text("email").notNull().unique(),
   deleted: boolean("deleted").$defaultFn(() => false).notNull(),
-});
+}, (t) => [
+  unique("unique_teacher_full_name").on(t.name, t.surname, t.paternal),
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
