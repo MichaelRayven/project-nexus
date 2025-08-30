@@ -9,6 +9,14 @@ export const appRouter = createTRPCRouter({
     .mutation(async (opts) => {
       const { input } = opts;
 
+      const existingSubject = await db.query.subject.findFirst({
+        where: (subj, { eq }) => eq(subj.name, input.name),
+      });
+
+      if (existingSubject) {
+        throw new Error("Предмет с таким именем уже существует");
+      }
+
       // Create a new subject in the database
       const newSubject = await db.insert(subject).values({
         name: input.name,
@@ -43,6 +51,27 @@ export const appRouter = createTRPCRouter({
     )
     .mutation(async (opts) => {
       const { input } = opts;
+
+      const existingTeacher = await db.query.teacher.findFirst({
+        where: (teach, { and, eq }) =>
+          and(
+            eq(teach.name, input.name),
+            eq(teach.surname, input.surname),
+            eq(teach.paternal, input.paternal)
+          ),
+      });
+
+      if (existingTeacher) {
+        throw new Error("Учитель с таким полным именем уже существует");
+      }
+
+      const existingEmail = await db.query.teacher.findFirst({
+        where: (teach, { eq }) => eq(teach.email, input.email),
+      });
+
+      if (existingEmail) {
+        throw new Error("Учитель с такой электронной почтой уже существует");
+      }
 
       // Create a new teacher in the database
       const newTeacher = await db.insert(teacher).values({
