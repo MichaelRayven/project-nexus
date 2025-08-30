@@ -26,10 +26,11 @@ import {
   CommandList,
 } from "./ui/command";
 import { trpc } from "@/trpc/client";
-import { CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
+import { CalendarIcon, CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
 import { AddSubjectDialog } from "./add-subject-dialog";
-import { teacher } from "@/db/schema";
 import { AddTeacherDialog } from "./add-teacher-dialog";
+import { format } from "date-fns"
+import { Calendar } from "./ui/calendar";
 
 const formSchema = z.object({
   title: z
@@ -135,7 +136,7 @@ export function IssueForm() {
                         ? subjects?.find(
                             (subject) => subject.id === field.value
                           )?.name
-                        : "Выбирите предемет..."}
+                        : "Выберите предмет..."}
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
                   </FormControl>
@@ -267,6 +268,48 @@ export function IssueForm() {
                       </CommandGroup>
                     </CommandList>
                   </Command>
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+          <FormField
+          control={form.control}
+          name="deadline"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Дедлайн</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Выберите дату</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                    captionLayout="dropdown"
+                  />
                 </PopoverContent>
               </Popover>
               <FormMessage />
