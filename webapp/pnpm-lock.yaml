@@ -119,6 +119,9 @@ importers:
       react-hook-form:
         specifier: ^7.62.0
         version: 7.62.0(react@19.1.1)
+      react-svg-spinners:
+        specifier: ^0.3.1
+        version: 0.3.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       rehype-katex:
         specifier: ^7.0.1
         version: 7.0.1
@@ -2332,6 +2335,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-svg-spinners@0.3.1:
+    resolution: {integrity: sha512-rjHsCQqWMab55aykR40ySX/BnVWdAe3EcfxvkRpHP868y3bpqLD2XclLHwSvjX3C7QARzU1NRKPkTjgjriOb9g==}
+    peerDependencies:
+      react: ^18.2.0
+      react-dom: ^18.2.0
 
   react@19.1.1:
     resolution: {integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==}
@@ -4899,6 +4908,11 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.1.11
+
+  react-svg-spinners@0.3.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   react@19.1.1: {}
 

@@ -28,6 +28,8 @@ import {
 import { trpc } from "@/trpc/client";
 import { CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
 import { AddSubjectDialog } from "./add-subject-dialog";
+import { teacher } from "@/db/schema";
+import { AddTeacherDialog } from "./add-teacher-dialog";
 
 const formSchema = z.object({
   title: z
@@ -47,6 +49,8 @@ const formSchema = z.object({
       message: "Описание не может быть длиннее 4096 символов",
     }),
   subject: z.string(),
+  teacher: z.string(),
+  deadline: z.date(),
 });
 
 export function IssueForm() {
@@ -57,10 +61,13 @@ export function IssueForm() {
       title: "",
       description: "",
       subject: "",
+      teacher: "",
+      deadline: new Date(),
     },
   });
 
-  const { data: subjects, isError } = trpc.subjectList.useQuery();
+  const { data: subjects } = trpc.subjectList.useQuery();
+  const { data: teachers } = trpc.teacherList.useQuery();
 
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -85,9 +92,6 @@ export function IssueForm() {
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
-                This is your public display name.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -106,9 +110,6 @@ export function IssueForm() {
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
-                This is your public display name.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -126,7 +127,7 @@ export function IssueForm() {
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-[200px] justify-between",
+                        "justify-between",
                         !field.value && "text-muted-foreground"
                       )}
                     >
@@ -139,7 +140,7 @@ export function IssueForm() {
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
+                <PopoverContent className="w-[300px] p-0">
                   <Command>
                     <CommandInput
                       placeholder="Поиск предмета..."
@@ -147,7 +148,7 @@ export function IssueForm() {
                     />
                     <CommandList>
                       <CommandEmpty>
-                        Предмет не найден.{" "}
+                        Предмет не найден.
                         <AddSubjectDialog
                           trigger={
                             <p className="underline underline-offset-4 cursor-pointer">
@@ -178,7 +179,7 @@ export function IssueForm() {
                         ))}
                         <AddSubjectDialog
                           trigger={
-                            <CommandItem className="cursor-pointer w-full">
+                            <CommandItem className="cursor-pointer">
                               <PlusIcon />
                               <span>Добавить предмет</span>
                             </CommandItem>
@@ -189,14 +190,91 @@ export function IssueForm() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              <FormDescription>
-                This is the language that will be used in the dashboard.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+
+        <FormField
+          control={form.control}
+          name="teacher"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Преподаватель</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? teachers?.find((t) => t.id === field.value)?.name
+                        : "Выберите преподавателя..."}
+                      <ChevronsUpDown className="opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Поиск преподавателя..."
+                      className="h-9"
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        Преподаватель не найден.
+                        <AddTeacherDialog
+                          trigger={
+                            <p className="underline underline-offset-4 cursor-pointer">
+                              Добавить преподавателя?
+                            </p>
+                          }
+                        />
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {teachers?.map((t) => (
+                          <CommandItem
+                            value={t.id}
+                            key={t.id}
+                            onSelect={() => {
+                              form.setValue("teacher", t.id);
+                            }}
+                          >
+                            {t.name}
+                            <CheckIcon
+                              className={cn(
+                                "ml-auto",
+                                t.id === field.value
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                        <AddTeacherDialog
+                          trigger={
+                            <CommandItem className="cursor-pointer">
+                              <PlusIcon />
+                              <span>Добавить преподавателя</span>
+                            </CommandItem>
+                          }
+                        />
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit">Добавить</Button>
       </form>
     </Form>
   );

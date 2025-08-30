@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from "./ui/form";
 import { trpc } from "@/trpc/client";
+import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners"
 
 const formSchema = z.object({
   name: z
@@ -54,12 +55,12 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
 
   return (
     <Dialog>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger className="w-full">{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px] w-auto">
         <DialogHeader>
           <DialogTitle>Добавить предмет</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you&apos;re done.
+            Введите название предмета и нажмите сохранить.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -77,7 +78,6 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
                   <FormControl>
                     <Input
                       placeholder="Алгебра и геометрия..."
-                      required
                       maxLength={150}
                       {...field}
                     />
@@ -93,8 +93,8 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
               <DialogClose asChild>
                 <Button variant="outline">Отмена</Button>
               </DialogClose>
-              <Button type="submit" form="add-subject">
-                Сохранить
+              <Button type="submit" form="add-subject" className="w-[100px] items-center justify-center" disabled={mutation.isPending}>
+                {mutation.isPending ? <Spinner color="white" /> : "Сохранить"}
               </Button>
             </DialogFooter>
           </form>
