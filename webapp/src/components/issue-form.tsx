@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, getFullName } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -9,10 +9,8 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronsUpDown,
-  CrossIcon,
   PlusIcon,
-  TrashIcon,
-  XIcon,
+  XIcon
 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,6 +37,7 @@ import {
 import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Textarea } from "./ui/textarea";
+import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 
 const formSchema = z.object({
   title: z
@@ -77,7 +76,7 @@ export function IssueForm() {
       description: "",
       subject: "",
       teacher: "",
-      resources: [{ name: "", url: "" }],
+      resources: [],
       deadline: new Date(),
     },
   });
@@ -90,11 +89,19 @@ export function IssueForm() {
   const { data: subjects } = trpc.subjectList.useQuery();
   const { data: teachers } = trpc.teacherList.useQuery();
 
+  const mutation = trpc.issueAdd.useMutation({
+    onError: (error) => {
+      console.log(error);
+    }
+      
+  });
+
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+    mutation.mutate({
+      ...values,
+      deadline: values.deadline.toISOString(),
+    });
   }
 
   return (
@@ -234,7 +241,7 @@ export function IssueForm() {
                       )}
                     >
                       {field.value
-                        ? teachers?.find((t) => t.id === field.value)?.name
+                        ? getFullName(teachers?.find((t) => t.id === field.value)!)
                         : "Выберите преподавателя..."}
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
@@ -258,19 +265,19 @@ export function IssueForm() {
                         />
                       </CommandEmpty>
                       <CommandGroup>
-                        {teachers?.map((t) => (
+                        {teachers?.map((teacher) => (
                           <CommandItem
-                            value={t.id}
-                            key={t.id}
+                            value={teacher.id}
+                            key={teacher.id}
                             onSelect={() => {
-                              form.setValue("teacher", t.id);
+                              form.setValue("teacher", teacher.id);
                             }}
                           >
-                            {t.name}
+                            {getFullName(teacher)}
                             <CheckIcon
                               className={cn(
                                 "ml-auto",
-                                t.id === field.value
+                                teacher.id === field.value
                                   ? "opacity-100"
                                   : "opacity-0"
                               )}
@@ -345,23 +352,30 @@ export function IssueForm() {
               <div className="space-y-2">
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex gap-2">
-                    <FormControl className="flex-1">
-                      <Input
-                        placeholder="Название"
-                        {...form.register(`resources.${index}.name` as const, {
-                          required: "Обязательно",
-                        })}
-                      />
-                    </FormControl>
-                    <FormControl className="flex-2">
-                      <Input
-                        placeholder="https://example.com"
-                        {...form.register(`resources.${index}.url` as const, {
-                          required: "Обязательно",
-                        })}
-                      />
-                    </FormControl>
-                    {index > 0 && (
+                   <FormField
+                      control={form.control}
+                      name={`resources.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} placeholder="Название ресурса" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`resources.${index}.url`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} placeholder="https://example.com" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                       <Button
                         variant="destructive"
                         size="icon"
@@ -369,7 +383,6 @@ export function IssueForm() {
                       >
                         <XIcon />
                       </Button>
-                    )}
                   </div>
                 ))}
                 <Button
@@ -387,7 +400,9 @@ export function IssueForm() {
           )}
         />
 
-        <Button type="submit">Добавить</Button>
+        <Button type="submit">
+          {mutation.isPending ? <Spinner color="white" /> : "Добавить"}
+        </Button>
       </form>
     </Form>
   );

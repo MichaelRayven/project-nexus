@@ -37,7 +37,7 @@ const formSchema = z.object({
   paternal: z.string().min(1, {
     message: "Отчество обязательно",
   }),
-  email: z.string().email({
+  email: z.email({
     message: "Неверный формат электронной почты",
   }),
 });
