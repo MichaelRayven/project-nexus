@@ -12,11 +12,11 @@ export function IssueDialog({ trigger }: { trigger?: React.ReactNode }) {
   return (
     <Dialog>
       <DialogTrigger>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] w-auto">
+      <DialogContent className="sm:max-w-[600px] w-auto">
         <DialogHeader>
-          <DialogTitle>Добавить предмет</DialogTitle>
+          <DialogTitle>Добавить задачу</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you&apos;re done.
+            Подробно опишите задачу, чтобы выполняющие её знали, что делать. Не забудьте добавить ссылки на все необходимые ресурсы.
           </DialogDescription>
         </DialogHeader>
         <IssueForm />

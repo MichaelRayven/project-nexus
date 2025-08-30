@@ -27,6 +27,7 @@ import {
 } from "./ui/form";
 import { trpc } from "@/trpc/client";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners"
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z
@@ -39,7 +40,7 @@ const formSchema = z.object({
     }),
 });
 
-export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
+export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigger?: ReactNode, onSubjectAdded?: () => void }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,7 +48,14 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
     },
   });
 
-  const mutation = trpc.subjectAdd.useMutation();
+  const mutation = trpc.subjectAdd.useMutation({
+    onSuccess: () => {
+      onSubjectAdded();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
@@ -66,7 +74,6 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            id="add-subject"
             className="space-y-8"
           >
             <FormField
@@ -93,7 +100,7 @@ export function AddSubjectDialog({ trigger }: { trigger?: ReactNode }) {
               <DialogClose asChild>
                 <Button variant="outline">Отмена</Button>
               </DialogClose>
-              <Button type="submit" form="add-subject" className="w-[100px] items-center justify-center" disabled={mutation.isPending}>
+              <Button type="submit" className="w-[100px] items-center justify-center" disabled={mutation.isPending}>
                 {mutation.isPending ? <Spinner color="white" /> : "Сохранить"}
               </Button>
             </DialogFooter>

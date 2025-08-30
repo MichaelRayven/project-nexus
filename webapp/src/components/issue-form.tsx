@@ -29,6 +29,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -38,6 +39,7 @@ import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Textarea } from "./ui/textarea";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   title: z
@@ -86,14 +88,13 @@ export function IssueForm() {
     name: "resources",
   });
 
-  const { data: subjects } = trpc.subjectList.useQuery();
-  const { data: teachers } = trpc.teacherList.useQuery();
+  const { data: subjects, refetch: refetchSubjects } = trpc.subjectList.useQuery();
+  const { data: teachers, refetch: refetchTeachers } = trpc.teacherList.useQuery();
 
   const mutation = trpc.issueAdd.useMutation({
     onError: (error) => {
-      console.log(error);
+      toast.error(error.message);
     }
-      
   });
 
   // 2. Define a submit handler.
@@ -130,11 +131,13 @@ export function IssueForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Описание</FormLabel>
+              <FormDescription>Это поле поддерживает Markdown.</FormDescription>
               <FormControl>
                 <Textarea
                   placeholder="Опишите задачу в деталях, чтобы выполняющие ее знали, что делать..."
                   maxLength={4096}
                   minLength={100}
+                  className="min-h-48"
                   {...field}
                 />
               </FormControl>
@@ -145,7 +148,7 @@ export function IssueForm() {
         <FormField
           control={form.control}
           name="subject"
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Предмет</FormLabel>
               <Popover>
@@ -285,6 +288,7 @@ export function IssueForm() {
                           </CommandItem>
                         ))}
                         <AddTeacherDialog
+                        
                           trigger={
                             <CommandItem className="cursor-pointer">
                               <PlusIcon />
@@ -356,7 +360,7 @@ export function IssueForm() {
                       control={form.control}
                       name={`resources.${index}.name`}
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex-1">
                           <FormControl>
                             <Input {...field} placeholder="Название ресурса" />
                           </FormControl>
@@ -368,7 +372,7 @@ export function IssueForm() {
                       control={form.control}
                       name={`resources.${index}.url`}
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex-2">
                           <FormControl>
                             <Input {...field} placeholder="https://example.com" />
                           </FormControl>

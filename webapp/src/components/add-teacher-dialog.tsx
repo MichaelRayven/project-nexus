@@ -26,6 +26,7 @@ import {
 } from "./ui/form";
 import { trpc } from "@/trpc/client";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -42,7 +43,7 @@ const formSchema = z.object({
   }),
 });
 
-export function AddTeacherDialog({ trigger }: { trigger?: ReactNode }) {
+export function AddTeacherDialog({ trigger, onTeacherAdded = () => {} }: { trigger?: ReactNode, onTeacherAdded?: () => void }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,7 +54,14 @@ export function AddTeacherDialog({ trigger }: { trigger?: ReactNode }) {
     },
   });
 
-  const mutation = trpc.teacherAdd.useMutation();
+  const mutation = trpc.teacherAdd.useMutation({
+    onSuccess: () => {
+      onTeacherAdded();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    }
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
@@ -72,7 +80,6 @@ export function AddTeacherDialog({ trigger }: { trigger?: ReactNode }) {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            id="add-teacher"
             className="space-y-4"
           >
             <FormField
@@ -133,7 +140,6 @@ export function AddTeacherDialog({ trigger }: { trigger?: ReactNode }) {
               </DialogClose>
               <Button
                 type="submit"
-                form="add-teacher"
                 className="w-[100px] items-center justify-center"
                 disabled={mutation.isPending}
               >
