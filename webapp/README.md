@@ -13,6 +13,24 @@ pnpm dev
 yarn dev
 ```
 
+```bash
+# update database
+pnpm drizzle-kit push
+# generate database migrations
+pnpm drizzle-kit generate
+# apply database migrations
+pnpm drizzle-kit migrate
+# database editor in web-interface
+pnpm drizzle-kit studio
+```
+
+Local development:
+```bash
+docker compose up -d
+nnpm drizzle-kit push
+pnpm run dev
+```
+
 Open http://localhost:3000 with your browser to see the result.
 
 ## Explore
