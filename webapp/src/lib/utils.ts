@@ -6,5 +6,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getFullName({name, surname, paternal}: { name: string; surname: string; paternal: string }) {
-  return `${surname} ${name} ${paternal}`;
+  return `${surname} ${name[0]}. ${paternal[0]}.`;
 }

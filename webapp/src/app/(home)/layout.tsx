@@ -30,13 +30,13 @@ export default async function Layout({ children }: LayoutProps<"/">) {
           children: (
             <>
               {session ? (
-                <div className="flex gap-4">
+                <div className="flex gap-2">
                   <Avatar>
-                  <AvatarImage src={session.user.image ?? undefined} />
-                  <AvatarFallback>
-                    {session.user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                    <AvatarImage src={session.user.image ?? undefined} />
+                    <AvatarFallback>
+                      {session.user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                 <IssueDialog trigger={
                   <Button>
                     <PlusIcon />

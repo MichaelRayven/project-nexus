@@ -2,7 +2,7 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "../init";
 import { db } from "@/db";
 import { subject, teacher } from "@/db/schema";
-import { parse } from "date-fns";
+import { addDays, format, parse } from "date-fns";
 
 export const appRouter = createTRPCRouter({
   subjectAdd: baseProcedure
@@ -39,7 +39,7 @@ export const appRouter = createTRPCRouter({
       where: (teach, { eq }) => eq(teach.deleted, false),
     });
 
-    return teachers
+    return teachers;
   }),
   teacherAdd: baseProcedure
     .input(
@@ -83,7 +83,7 @@ export const appRouter = createTRPCRouter({
       });
       return newTeacher;
     }),
-    issueAdd: baseProcedure
+  issueAdd: baseProcedure
     .input(
       z.object({
         title: z.string(),
@@ -114,38 +114,107 @@ export const appRouter = createTRPCRouter({
         throw new Error("Указанный учитель не существует");
       }
 
-      const deadlineDate = parse(input.deadline, "yyyy-MM-dd'T'HH:mm:ss.SSSX", new Date())
-      
+      const deadlineDate = parse(
+        input.deadline,
+        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+        new Date()
+      );
 
-      if (deadlineDate < new Date()) {
-        throw new Error("Срок сдачи не может быть в прошлом");
-      }
+      // Check only the day
+      // if (deadlineDate < new Date()) {
+      //   throw new Error("Срок сдачи не может быть в прошлом");
+      // }
 
       // Create a new issue in the database
-      const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: input.title,
-          body: `${input.description}\n\nResources:\n${input.resources.map((res) => `- [${res.name}](${res.url})`).join("\n")}`,
-          labels: [
-        `deadline:${deadlineDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}`,
-        `teacher:${teacherExists.name} ${teacherExists.surname} ${teacherExists.paternal}`,
-        `subject:${subjectExists.name}`,
-          ],
-        }),
-      });
+      const response = await fetch(
+        `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: input.title,
+            body: `${input.description}\n\nResources:\n${input.resources
+              .map((res) => `- [${res.name}](${res.url})`)
+              .join("\n")}`,
+            labels: [
+              `deadline:${format(deadlineDate, "MM-dd-yyyy")}`,
+              `teacher:${teacherExists.name} ${teacherExists.surname} ${teacherExists.paternal}`,
+              `subject:${subjectExists.name}`,
+            ],
+          }),
+        }
+      );
 
       if (!response.ok) {
-        console.error('GitHub API response:', await response.text());
+        console.error("GitHub API response:", await response.text());
         throw new Error("Не удалось создать задачу");
       }
 
       return "Задача успешно создана";
+    }),
+  issueList: baseProcedure
+    .input(
+      z.object({
+        deadline: z.string(),
+      })
+    )
+    .query(async (opts) => {
+      const { input } = opts;
+
+       const deadlineDate = parse(
+          input.deadline,
+          "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+          new Date()
+        );
+
+      const response = await fetch(
+        `https://api.github.com/search/issues?q=label:deadline:${format(deadlineDate, "MM-dd-yyyy")}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error("GitHub API response:", await response.text());
+        throw new Error("Не удалось получить задачи");
+      }
+
+      const issues = await response.json();
+      return issues.items;
+    }),
+    issuesWeek: baseProcedure.query(async () => {
+      const dates = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        const updatedDate = addDays(date, i);
+        return format(updatedDate, "MM-dd-yyyy");
+      });
+
+      const results = await Promise.all(
+        dates.map(async (date) => {
+          const res = await fetch(
+            `https://api.github.com/search/issues?q=label:deadline:${date}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                Accept: "application/vnd.github+json",
+              },
+            }
+          );
+          const data = await res.json();
+          return data.items as GitHubIssue[];
+          
+      }));
+
+      return results;
     }),
 });
 // export type definition of API

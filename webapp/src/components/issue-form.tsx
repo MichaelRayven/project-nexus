@@ -69,7 +69,7 @@ const formSchema = z.object({
   ),
 });
 
-export function IssueForm() {
+export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}) {
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,6 +94,10 @@ export function IssueForm() {
   const mutation = trpc.issueAdd.useMutation({
     onError: (error) => {
       toast.error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Задача добавлена");
+      onIssueAdded();
     }
   });
 
@@ -404,7 +408,7 @@ export function IssueForm() {
           )}
         />
 
-        <Button type="submit">
+        <Button type="submit" className="w-[100px]" disabled={mutation.isPending}>
           {mutation.isPending ? <Spinner color="white" /> : "Добавить"}
         </Button>
       </form>
