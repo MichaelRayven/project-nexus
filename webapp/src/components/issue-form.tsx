@@ -1,22 +1,25 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "./ui/form";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import {
+  CalendarIcon,
+  CheckIcon,
+  ChevronsUpDown,
+  CrossIcon,
+  PlusIcon,
+  TrashIcon,
+  XIcon,
+} from "lucide-react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { z } from "zod";
+import { AddSubjectDialog } from "./add-subject-dialog";
+import { AddTeacherDialog } from "./add-teacher-dialog";
+import { Button } from "./ui/button";
+import { Calendar } from "./ui/calendar";
 import {
   Command,
   CommandEmpty,
@@ -25,13 +28,17 @@ import {
   CommandItem,
   CommandList,
 } from "./ui/command";
-import { trpc } from "@/trpc/client";
-import { CalendarIcon, CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
-import { AddSubjectDialog } from "./add-subject-dialog";
-import { AddTeacherDialog } from "./add-teacher-dialog";
-import { format } from "date-fns"
-import { Calendar } from "./ui/calendar";
-import { ru } from "date-fns/locale";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./ui/form";
+import { Input } from "./ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Textarea } from "./ui/textarea";
 
 const formSchema = z.object({
   title: z
@@ -50,9 +57,15 @@ const formSchema = z.object({
     .max(4096, {
       message: "Описание не может быть длиннее 4096 символов",
     }),
-  subject: z.string(),
-  teacher: z.string(),
+  subject: z.string().min(1, { message: "Предмет обязателен" }),
+  teacher: z.string().min(1, { message: "Преподаватель обязателен" }),
   deadline: z.date(),
+  resources: z.array(
+    z.object({
+      name: z.string().min(1, { message: "Название обязательно" }),
+      url: z.url({ message: "Неверный URL" }),
+    })
+  ),
 });
 
 export function IssueForm() {
@@ -64,8 +77,14 @@ export function IssueForm() {
       description: "",
       subject: "",
       teacher: "",
+      resources: [{ name: "", url: "" }],
       deadline: new Date(),
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "resources",
   });
 
   const { data: subjects } = trpc.subjectList.useQuery();
@@ -119,7 +138,7 @@ export function IssueForm() {
         <FormField
           control={form.control}
           name="subject"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Предмет</FormLabel>
               <Popover>
@@ -276,7 +295,7 @@ export function IssueForm() {
           )}
         />
 
-          <FormField
+        <FormField
           control={form.control}
           name="deadline"
           render={({ field }) => (
@@ -307,13 +326,62 @@ export function IssueForm() {
                     selected={field.value}
                     onSelect={field.onChange}
                     locale={ru}
-                    disabled={(date) =>
-                      date < new Date()
-                    }
+                    disabled={(date) => date < new Date()}
                     captionLayout="dropdown"
                   />
                 </PopoverContent>
               </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="resources"
+          render={() => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Ресурсы</FormLabel>
+              <div className="space-y-2">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="flex gap-2">
+                    <FormControl className="flex-1">
+                      <Input
+                        placeholder="Название"
+                        {...form.register(`resources.${index}.name` as const, {
+                          required: "Обязательно",
+                        })}
+                      />
+                    </FormControl>
+                    <FormControl className="flex-2">
+                      <Input
+                        placeholder="https://example.com"
+                        {...form.register(`resources.${index}.url` as const, {
+                          required: "Обязательно",
+                        })}
+                      />
+                    </FormControl>
+                    {index > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => remove(index)}
+                      >
+                        <XIcon />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                  onClick={() => append({ name: "", url: "" })}
+                >
+                  <PlusIcon />
+                  Добавить ресурс
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
