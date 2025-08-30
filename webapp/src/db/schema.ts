@@ -3,6 +3,7 @@ import { pgTable, text, timestamp, boolean, uuid } from "drizzle-orm/pg-core";
 export const subject = pgTable("subject", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
+  deleted: boolean("deleted").$defaultFn(() => false).notNull(),
 });
 
 export const teacher = pgTable("teacher", {
@@ -11,6 +12,7 @@ export const teacher = pgTable("teacher", {
   surname: text("surname").notNull(),
   paternal: text("paternal").notNull(),
   email: text("email").notNull().unique(),
+  deleted: boolean("deleted").$defaultFn(() => false).notNull(),
 });
 
 export const user = pgTable("user", {
