@@ -10,7 +10,7 @@ import {
   CheckIcon,
   ChevronsUpDown,
   PlusIcon,
-  XIcon
+  XIcon,
 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -40,6 +40,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Textarea } from "./ui/textarea";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 const formSchema = z.object({
   title: z
@@ -67,9 +76,15 @@ const formSchema = z.object({
       url: z.url({ message: "Неверный URL" }),
     })
   ),
+  duration: z.enum(["short", "medium", "long"]),
+  category: z.enum(["homework", "labwork", "coursework", "other"]),
 });
 
-export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}) {
+export function IssueForm({
+  onIssueAdded = () => {},
+}: {
+  onIssueAdded?: () => void;
+}) {
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,6 +95,8 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
       teacher: "",
       resources: [],
       deadline: new Date(),
+      duration: "medium",
+      category: "homework",
     },
   });
 
@@ -88,8 +105,10 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
     name: "resources",
   });
 
-  const { data: subjects, refetch: refetchSubjects } = trpc.subjectList.useQuery();
-  const { data: teachers, refetch: refetchTeachers } = trpc.teacherList.useQuery();
+  const { data: subjects, refetch: refetchSubjects } =
+    trpc.subjectList.useQuery();
+  const { data: teachers, refetch: refetchTeachers } =
+    trpc.teacherList.useQuery();
 
   const mutation = trpc.issueAdd.useMutation({
     onError: (error) => {
@@ -98,7 +117,7 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
     onSuccess: () => {
       toast.success("Задача добавлена");
       onIssueAdded();
-    }
+    },
   });
 
   // 2. Define a submit handler.
@@ -129,6 +148,66 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
             </FormItem>
           )}
         />
+
+        <div className="flex gap-4">
+          <FormField
+            control={form.control}
+            name="duration"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Длительность выполнения</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите длительность" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="short">Короткая</SelectItem>
+                        <SelectItem value="medium">Средняя</SelectItem>
+                        <SelectItem value="long">Длинная</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Категория задачи</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите категорию" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="homework">
+                          Домашнее задание
+                        </SelectItem>
+                        <SelectItem value="labwork">
+                          Лабораторная работа
+                        </SelectItem>
+                        <SelectItem value="coursework">
+                          Курсовая работа
+                        </SelectItem>
+                        <SelectItem value="other">Другое</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="description"
@@ -248,7 +327,9 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
                       )}
                     >
                       {field.value
-                        ? getFullName(teachers?.find((t) => t.id === field.value)!)
+                        ? getFullName(
+                            teachers?.find((t) => t.id === field.value)!
+                          )
                         : "Выберите преподавателя..."}
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
@@ -292,7 +373,6 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
                           </CommandItem>
                         ))}
                         <AddTeacherDialog
-                        
                           trigger={
                             <CommandItem className="cursor-pointer">
                               <PlusIcon />
@@ -360,7 +440,7 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
               <div className="space-y-2">
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex gap-2">
-                   <FormField
+                    <FormField
                       control={form.control}
                       name={`resources.${index}.name`}
                       render={({ field }) => (
@@ -378,19 +458,22 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
                       render={({ field }) => (
                         <FormItem className="flex-2">
                           <FormControl>
-                            <Input {...field} placeholder="https://example.com" />
+                            <Input
+                              {...field}
+                              placeholder="https://example.com"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <XIcon />
-                      </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => remove(index)}
+                    >
+                      <XIcon />
+                    </Button>
                   </div>
                 ))}
                 <Button
@@ -408,7 +491,11 @@ export function IssueForm({onIssueAdded = () => {}}: {onIssueAdded?: () => void}
           )}
         />
 
-        <Button type="submit" className="w-[100px]" disabled={mutation.isPending}>
+        <Button
+          type="submit"
+          className="w-[100px]"
+          disabled={mutation.isPending}
+        >
           {mutation.isPending ? <Spinner color="white" /> : "Добавить"}
         </Button>
       </form>
