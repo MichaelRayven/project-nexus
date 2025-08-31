@@ -124,7 +124,7 @@ export function IssueForm({
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate({
       ...values,
-      deadline: values.deadline.toISOString(),
+      deadline: format(values.deadline, "MM-dd-yyyy"),
     });
   }
 

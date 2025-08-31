@@ -3,6 +3,7 @@ import { baseProcedure, createTRPCRouter } from "../init";
 import { db } from "@/db";
 import { subject, teacher } from "@/db/schema";
 import { addDays, format, parse } from "date-fns";
+import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
 
 export const appRouter = createTRPCRouter({
   subjectAdd: baseProcedure
@@ -88,6 +89,8 @@ export const appRouter = createTRPCRouter({
       z.object({
         title: z.string(),
         description: z.string(),
+        duration: z.enum(["short", "medium", "long"]),
+        category: z.enum(["homework", "labwork", "coursework", "other"]),
         subject: z.string(),
         teacher: z.string(),
         deadline: z.string(),
@@ -114,19 +117,15 @@ export const appRouter = createTRPCRouter({
         throw new Error("Указанный учитель не существует");
       }
 
-      const deadlineDate = parse(
-        input.deadline,
-        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
-        new Date()
-      );
+      const deadlineDate = parse(input.deadline, "MM-dd-yyyy", new Date());
 
       // Check only the day
-      // if (deadlineDate < new Date()) {
-      //   throw new Error("Срок сдачи не может быть в прошлом");
-      // }
+      if (deadlineDate < new Date()) {
+        throw new Error("Срок сдачи не может быть в прошлом");
+      }
 
       // Create a new issue in the database
-      let body = `${input.description}`
+      let body = `${input.description}`;
 
       if (input.resources.length) {
         body += `\n\nResources:\n${input.resources
@@ -134,7 +133,7 @@ export const appRouter = createTRPCRouter({
           .join("\n")}`;
       }
 
-      body += `\n\n---\n*Перед тем как начать выполнять задание, не забудьте назначить себя исполнителем.*`
+      body += `\n\n---\n*Перед тем как начать выполнять задание, не забудьте назначить себя исполнителем.*`;
 
       const response = await fetch(
         `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues`,
@@ -149,9 +148,11 @@ export const appRouter = createTRPCRouter({
             title: input.title,
             body: body,
             labels: [
-              `deadline:${format(deadlineDate, "MM-dd-yyyy")}`,
-              `teacher:${teacherExists.name} ${teacherExists.surname} ${teacherExists.paternal}`,
-              `subject:${subjectExists.name}`,
+              `Дедлайн:${format(deadlineDate, "MM-dd-yyyy")}`,
+              `Преподаватель:${getFullName(teacherExists)}`,
+              `Предмет:${subjectExists.name}`,
+              `Длительность:${formatDuration(input.duration)}`,
+              `Категория:${formatCategory(input.category)}`,
             ],
           }),
         }
@@ -173,14 +174,19 @@ export const appRouter = createTRPCRouter({
     .query(async (opts) => {
       const { input } = opts;
 
-       const deadlineDate = parse(
-          input.deadline,
-          "yyyy-MM-dd'T'HH:mm:ss.SSSX",
-          new Date()
-        );
+      const deadlineDate = parse(
+        input.deadline,
+        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+        new Date()
+      );
 
       const response = await fetch(
-        `https://api.github.com/search/issues?q=label:deadline:${format(deadlineDate, "MM-dd-yyyy")}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
+        `https://api.github.com/search/issues?q=label:deadline:${format(
+          deadlineDate,
+          "MM-dd-yyyy"
+        )}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${
+          process.env.GITHUB_REPOSITORY_NAME
+        }`,
         {
           method: "GET",
           headers: {
@@ -198,32 +204,32 @@ export const appRouter = createTRPCRouter({
       const issues = await response.json();
       return issues.items;
     }),
-    issuesWeek: baseProcedure.query(async () => {
-      const dates = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        const updatedDate = addDays(date, i);
-        return format(updatedDate, "MM-dd-yyyy");
-      });
+  issuesWeek: baseProcedure.query(async () => {
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      const updatedDate = addDays(date, i);
+      return format(updatedDate, "MM-dd-yyyy");
+    });
 
-      const results = await Promise.all(
-        dates.map(async (date) => {
-          const res = await fetch(
-            `https://api.github.com/search/issues?q=label:deadline:${date}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-                Accept: "application/vnd.github+json",
-              },
-            }
-          );
-          const data = await res.json();
-          return data.items as GitHubIssue[];
-          
-      }));
+    const results = await Promise.all(
+      dates.map(async (date) => {
+        const res = await fetch(
+          `https://api.github.com/search/issues?q=label:deadline:${date}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+              Accept: "application/vnd.github+json",
+            },
+          }
+        );
+        const data = await res.json();
+        return data.items as GitHubIssue[];
+      })
+    );
 
-      return results;
-    }),
+    return results;
+  }),
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;
