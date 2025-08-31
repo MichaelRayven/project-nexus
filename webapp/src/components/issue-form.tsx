@@ -114,12 +114,16 @@ export function IssueForm({
   const { data: teachers, refetch: refetchTeachers } =
     trpc.teacherList.useQuery();
 
+  const utils = trpc.useUtils();
   const mutation = trpc.issueAdd.useMutation({
     onError: (error) => {
       toast.error(error.message);
     },
     onSuccess: () => {
+      form.reset();
       toast.success("Задача добавлена");
+      utils.issuesWeek.invalidate()
+      utils.issueList.invalidate();
       onIssueAdded();
     },
   });

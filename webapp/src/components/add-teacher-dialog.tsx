@@ -54,8 +54,12 @@ export function AddTeacherDialog({ trigger, onTeacherAdded = () => {} }: { trigg
     },
   });
 
+  const utils = trpc.useUtils();
   const mutation = trpc.teacherAdd.useMutation({
     onSuccess: () => {
+      form.reset();
+      toast.success("Преподаватель добавлен");
+      utils.teacherList.invalidate();
       onTeacherAdded();
     },
     onError: (error) => {

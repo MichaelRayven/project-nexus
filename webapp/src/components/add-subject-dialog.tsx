@@ -48,8 +48,12 @@ export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigg
     },
   });
 
+  const utils = trpc.useUtils();
   const mutation = trpc.subjectAdd.useMutation({
     onSuccess: () => {
+      form.reset();
+      toast.success("Предмет добавлен");
+      utils.subjectList.invalidate();
       onSubjectAdded();
     },
     onError: (error) => {

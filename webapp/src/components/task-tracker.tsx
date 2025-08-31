@@ -26,9 +26,9 @@ export function TaskTracker() {
   });
 
   return (
-    <div className="flex gap-4 overflow-x-auto py-4 justify-center flex-wrap">
+    <div className="flex gap-4 overflow-x-auto py-4 justify-center flex-wrap md:px-32">
       {days.map((day, idx) => (
-        <Card key={idx} className="min-w-[220px] flex-shrink-0">
+        <Card key={idx} className="min-w-[450px] flex-shrink-0">
           <CardHeader>
             <CardTitle>{day.date}</CardTitle>
             <CardDescription>
