@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { useState } from "react";
 import { z } from "zod";
 import { AddSubjectDialog } from "./add-subject-dialog";
 import { AddTeacherDialog } from "./add-teacher-dialog";
@@ -45,10 +46,13 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import Markdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { remarkGfm } from "fumadocs-core/mdx-plugins";
 
 const formSchema = z.object({
   title: z
@@ -211,22 +215,41 @@ export function IssueForm({
         <FormField
           control={form.control}
           name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Описание</FormLabel>
-              <FormDescription>Это поле поддерживает Markdown.</FormDescription>
-              <FormControl>
-                <Textarea
-                  placeholder="Опишите задачу в деталях, чтобы выполняющие ее знали, что делать..."
-                  maxLength={4096}
-                  minLength={100}
-                  className="min-h-48"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const [preview, setPreview] = useState(false);
+            return (
+              <FormItem>
+                <FormLabel className="flex justify-between">Описание 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreview((v) => !v)}
+                  >
+                    {preview ? "Редактировать" : "Предпросмотр"}
+                  </Button></FormLabel>
+                <FormDescription>
+                  Это поле поддерживает Markdown.
+                </FormDescription>
+                <FormControl>
+                  {preview ? (
+                    <div className="border rounded min-h-48 p-4 bg-muted/30 prose dark:prose-invert prose-sm">
+                      <Markdown rehypePlugins={[rehypeKatex]} remarkPlugins={[remarkMath]}>{field.value}</Markdown>
+                    </div>
+                  ) : (
+                    <Textarea
+                      placeholder="Опишите задачу в деталях, чтобы выполняющие ее знали, что делать..."
+                      maxLength={4096}
+                      minLength={100}
+                      className="min-h-48"
+                      {...field}
+                    />
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
         <FormField
           control={form.control}

@@ -114,7 +114,7 @@ export const appRouter = createTRPCRouter({
           and(eq(teach.id, input.teacher), eq(teach.deleted, false)),
       });
       if (!teacherExists) {
-        throw new Error("Указанный учитель не существует");
+        throw new Error("Указанный преподаватель не существует");
       }
 
       const deadlineDate = parse(input.deadline, "MM-dd-yyyy", new Date());
