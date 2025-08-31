@@ -4,7 +4,6 @@ import { trpc } from "@/trpc/client";
 import { Button } from "./ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -18,14 +17,46 @@ import { ru } from "date-fns/locale";
 import { addDays, parse } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { IssueDialog } from "./issue-dialog";
+import { cn, getIssueStatus } from "@/lib/utils";
+import { get } from "http";
 
 function IssueDisplay({ issue }: { issue: GitHubIssue }) {
+  const mutation = trpc.issueAsignSelf.useMutation();
+  const utils = trpc.useUtils();
+
+  const onAssignSelf = async () => {
+    mutation.mutate({ issueId: issue.number }, {
+      onSuccess: () => {
+        utils.issuesWeek.invalidate();
+      }
+    });
+  };
+
+  const labels = [...issue.labels];
+  const deadlineIdx = labels.findIndex((label) =>
+    label.name.includes("Дедлайн:")
+  );
+  const deadlineLabel =
+    deadlineIdx !== -1 ? labels.splice(deadlineIdx, 1)[0] : undefined;
+  const teacherIdx = labels.findIndex((label) =>
+    label.name.includes("Преподаватель:")
+  );
+  const teacherLabel =
+    teacherIdx !== -1 ? labels.splice(teacherIdx, 1)[0] : undefined;
+  const subjectIdx = labels.findIndex((label) =>
+    label.name.includes("Предмет:")
+  );
+  const subjectLabel =
+    subjectIdx !== -1 ? labels.splice(subjectIdx, 1)[0] : undefined;
+
+  const status = getIssueStatus(issue);
+
   return (
     <div key={issue.id} className="flex flex-col gap-2 p-4 border rounded-lg">
       {/* Labels */}
       <div className="flex flex-wrap gap-2">
-        {issue.labels
-          .filter((label) => !label.name.includes("deadline"))
+        {labels
+          .filter((label) => !label.name.toLowerCase().includes("дедлайн"))
           .map((label) => (
             <Badge
               key={label.id}
@@ -37,52 +68,67 @@ function IssueDisplay({ issue }: { issue: GitHubIssue }) {
           ))}
       </div>
 
-      {/* Title as Link with Status */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Link
           href={issue.html_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-3 hover:text-blue-600"
+          className="underline underline-offset-3"
         >
           {issue.title}
         </Link>
         <Badge
-          variant={issue.state === "open" ? "default" : "secondary"}
-          className="text-xs"
+          variant="default"
+          className={cn("text-xs", 
+            status.color === "green" ? "bg-green-100 text-green-800" :
+            status.color === "red" ? "bg-red-100 text-red-800" :
+            status.color === "yellow" ? "bg-yellow-100 text-yellow-800" :
+            "bg-gray-100 text-gray-800"
+          )}
         >
-          {issue.state}
+          {status.status}
         </Badge>
       </div>
 
       {/* Assignees */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Assignees:</span>
-        {issue.assignees.length > 0 ? (
-          <div className="flex -space-x-2">
-            {issue.assignees.map((assignee) => (
-              <Link
-                key={assignee.id}
-                href={assignee.html_url || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={assignee.login}
-              >
-                <Avatar className="h-8 w-8 border-2 border-white">
-                  <AvatarImage
-                    src={assignee.avatar_url || ""}
-                    alt={assignee.login}
-                  />
-                  <AvatarFallback>
-                    {assignee.login.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <span className="text-sm text-gray-500">None</span>
-        )}
+      <div className="flex flex-col items-start gap-2">
+        <span className="text-sm font-medium">
+          Предмет: {subjectLabel?.name.split(":")[1]}
+        </span>
+        <span className="text-sm font-medium">
+          Преподаватель: {teacherLabel?.name.split(":")[1]}
+        </span>
+        <div className="flex gap-4 items-center">
+          <span className="text-sm font-medium">Исполнители:</span>
+          {issue.assignees.length > 0 ? (
+            <div className="flex -space-x-2">
+              {issue.assignees.map((assignee) => (
+                <Link
+                  key={assignee.id}
+                  href={assignee.html_url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={assignee.login}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage
+                      src={assignee.avatar_url || ""}
+                      alt={assignee.login}
+                    />
+                    <AvatarFallback>
+                      {assignee.login.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{assignee.login}</span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <span className="text-sm text-gray-500">отсутствуют</span>
+          )}
+        </div>
+        <Button variant="secondary" onClick={onAssignSelf}>Назначить себя исполнителем</Button>
       </div>
     </div>
   );
@@ -128,7 +174,9 @@ export function TaskTracker() {
                   Добавить задачу
                 </Button>
               }
-              initialDeadline={parse(day.date, "PPP", new Date(), { locale: ru })}
+              initialDeadline={parse(day.date, "PPP", new Date(), {
+                locale: ru,
+              })}
             />
           </CardFooter>
         </Card>
