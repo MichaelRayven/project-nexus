@@ -3,5 +3,10 @@ import { createFromSource } from 'fumadocs-core/search/server';
 
 export const { GET } = createFromSource(source, {
   // https://docs.orama.com/docs/orama-js/supported-languages
-  language: 'english',
+  localeMap: {
+    // [locale]: Orama options
+    ru: { language: 'russian' },
+    en: { language: 'english' },
+  },
+  language: 'russian',
 });
