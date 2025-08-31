@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 
-export function IssueDialog({ trigger }: { trigger?: React.ReactNode }) {
+export function IssueDialog({ trigger, initialDeadline }: { trigger?: React.ReactNode, initialDeadline?: Date }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,7 +24,7 @@ export function IssueDialog({ trigger }: { trigger?: React.ReactNode }) {
             Подробно опишите задачу, чтобы выполняющие её знали, что делать. Не забудьте добавить ссылки на все необходимые ресурсы.
           </DialogDescription>
         </DialogHeader>
-        <IssueForm onIssueAdded={() => setOpen(false)} />
+        <IssueForm onIssueAdded={() => setOpen(false)} initialDeadline={initialDeadline} />
       </DialogContent>
     </Dialog>
   );

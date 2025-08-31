@@ -86,8 +86,10 @@ const formSchema = z.object({
 
 export function IssueForm({
   onIssueAdded = () => {},
+  initialDeadline = new Date(),
 }: {
   onIssueAdded?: () => void;
+  initialDeadline?: Date;
 }) {
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
@@ -98,7 +100,7 @@ export function IssueForm({
       subject: "",
       teacher: "",
       resources: [],
-      deadline: new Date(),
+      deadline: initialDeadline,
       duration: "medium",
       category: "homework",
     },
