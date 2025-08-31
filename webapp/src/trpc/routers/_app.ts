@@ -126,6 +126,16 @@ export const appRouter = createTRPCRouter({
       // }
 
       // Create a new issue in the database
+      let body = `${input.description}`
+
+      if (input.resources.length) {
+        body += `\n\nResources:\n${input.resources
+          .map((res) => `- [${res.name}](${res.url})`)
+          .join("\n")}`;
+      }
+
+      body += `\n\n---\n*Перед тем как начать выполнять задание, не забудьте назначить себя исполнителем.*`
+
       const response = await fetch(
         `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues`,
         {
@@ -137,9 +147,7 @@ export const appRouter = createTRPCRouter({
           },
           body: JSON.stringify({
             title: input.title,
-            body: `${input.description}\n\nResources:\n${input.resources
-              .map((res) => `- [${res.name}](${res.url})`)
-              .join("\n")}`,
+            body: body,
             labels: [
               `deadline:${format(deadlineDate, "MM-dd-yyyy")}`,
               `teacher:${teacherExists.name} ${teacherExists.surname} ${teacherExists.paternal}`,
