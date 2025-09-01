@@ -16,7 +16,6 @@ export default async function Layout({ children }: LayoutProps<"/">) {
   return (
     <HomeLayout
       {...baseOptions()}
-      title="test"
       links={[
         {
           icon: <BookIcon />,

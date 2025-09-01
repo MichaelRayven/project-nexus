@@ -16,7 +16,7 @@ export function LogInButton() {
 
   return (
     <Button onClick={handleClick}>
-      <LogInIcon /> Login
+      <LogInIcon /> Войти
     </Button>
   );
 }
