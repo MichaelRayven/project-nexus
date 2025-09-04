@@ -243,7 +243,7 @@ export const appRouter = createTRPCRouter({
 
       // Get session
       const session = await auth.api.getSession({
-          headers: await headers()
+        headers: await headers(),
       });
 
       // Get account id
@@ -252,21 +252,18 @@ export const appRouter = createTRPCRouter({
       }
 
       const account = await db.query.account.findFirst({
-        where: (acc, { and, eq }) =>
-          and(
-            eq(acc.userId, session.user.id),
-          ),
+        where: (acc, { and, eq }) => and(eq(acc.userId, session.user.id)),
       });
 
       // Fetch GitHub username using the account ID
       const userResponse = await fetch(
         `https://api.github.com/user/${account!.accountId}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
           },
         }
       );
@@ -280,11 +277,11 @@ export const appRouter = createTRPCRouter({
       const response = await fetch(
         `https://api.github.com/repos/MichaelRayven/project-nexus/issues/${input.issueId}/assignees`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
           },
           body: JSON.stringify({ assignees: userLogin }),
         }
