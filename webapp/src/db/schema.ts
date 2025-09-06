@@ -9,7 +9,8 @@ import {
 
 export const subject = pgTable("subject", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  fullName: text("fullName").notNull().unique(),
   deleted: boolean("deleted")
     .$defaultFn(() => false)
     .notNull(),
