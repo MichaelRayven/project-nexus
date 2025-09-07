@@ -6,10 +6,12 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { authClient } from "@/lib/auth-client";
 
 export function TaskDisplay({ issue }: { issue: GitHubIssue }) {
   const mutation = trpc.issueAsignSelf.useMutation();
   const utils = trpc.useUtils();
+  const { data: session, isPending, error, refetch } = authClient.useSession();
 
   const onAssignSelf = async () => {
     mutation.mutate(
@@ -122,9 +124,11 @@ export function TaskDisplay({ issue }: { issue: GitHubIssue }) {
             <span className="text-sm text-gray-500">отсутствуют</span>
           )}
         </div>
-        <Button variant="secondary" onClick={onAssignSelf}>
-          Назначить себя исполнителем
-        </Button>
+        {issue.assignees.filter(
+          (assignee) => assignee.login === session?.user.username
+        ).length === 0 && (
+          <Button onClick={onAssignSelf}>Назначить себя</Button>
+        )}
       </div>
     </div>
   );
