@@ -1,0 +1,292 @@
+---
+title: Задания по построению двоичного дерева и обходам дерева
+description: Обход двоичного дерева, сверху-вниз, слева-направо снизу-вверх.
+---
+
+[Требования к заданию на GitHub](hhttps://github.com/MichaelRayven/project-nexus/issues/16)
+[Варианты деревьев](https://drive.google.com/file/d/18vpu8F8RYfdkR85-3ukzAcA-ZyUX6IfY/view?usp=sharing)
+[Пособие стр. 41](https://drive.google.com/file/d/15siqjB_PpTFHuq4GM_NuahQenBEzU-6e/view?usp=sharing)
+
+### Ход выполнения
+
+Начало файла, константы и вспомогательные функции
+
+```c
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+typedef struct Vertex {
+  int data;
+  struct Vertex *left;
+  struct Vertex *right;
+} Vertex;
+
+int tree_height(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  int lh = tree_height(root->left);
+  int rh = tree_height(root->right);
+  return 1 + (lh > rh ? lh : rh);
+}
+
+int tree_checksum(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return root->data + tree_checksum(root->left) + tree_checksum(root->right);
+}
+
+int tree_size(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return 1 + tree_size(root->left) + tree_size(root->right);
+}
+
+int tree_sum_path_lengths(Vertex *root, int depth) {
+  if (root == NULL) {
+    return 0;
+  }
+  return depth + tree_sum_path_lengths(root->left, depth + 1) +
+         tree_sum_path_lengths(root->right, depth + 1);
+}
+
+float tree_average_height(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return (float)tree_sum_path_lengths(root, 1) / tree_size(root);
+}
+```
+
+1. Разместить в памяти компьютера заданное двоичное дерево  
+   (см. ниже, номер варианта соответствует номеру студента в журнале группы),  
+   данные в вершинах заполнить целыми числами (в диапазоне от 1 до 20).
+
+```c
+/*
+Дерево для 7 варианта
+   1
+ /   \
+2     3
+     / \
+    4   5
+       / \
+      6   7
+*/
+void init_tree(Vertex *root) {
+  srand(time(NULL));
+
+  root->data = (rand() + 1) % 21;
+
+  root->left = (Vertex *)malloc(sizeof(Vertex));
+  root->left->data = (rand() + 1) % 21;
+
+  root->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->data = (rand() + 1) % 21;
+
+  root->right->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->data = (rand() + 1) % 21;
+
+  root->right->right->left = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->left->data = (rand() + 1) % 21;
+
+  root->right->right->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->right->data = (rand() + 1) % 21;
+}
+```
+
+2. Запрограммировать обходы двоичного дерева сверху вниз, слева направо и снизу вверх,  
+   и вывести на экран получившиеся последовательности данных.
+
+```c
+// Root, L, R
+void tree_traversal_downward(Vertex *root) {
+  if (root != NULL) {
+    printf("%d ", root->data);
+    tree_traversal_downward(root->left);
+    tree_traversal_downward(root->right);
+  }
+}
+
+// L, Root, R
+void tree_traversal_rightward(Vertex *root) {
+  if (root != NULL) {
+    tree_traversal_rightward(root->left);
+    printf("%d ", root->data);
+    tree_traversal_rightward(root->right);
+  }
+}
+
+// L, R, Root
+void tree_traversal_upward(Vertex *root) {
+  if (root != NULL) {
+    tree_traversal_upward(root->left);
+    tree_traversal_upward(root->right);
+    printf("%d ", root->data);
+  }
+}
+```
+
+3. Для построенного дерева вычислить размер, контрольную сумму, высоту и среднюю высоту.  
+   (Для средней высоты предусмотреть вывод двух знаков после запятой).
+
+```c
+int main() {
+  Vertex *root = (Vertex *)malloc(sizeof(Vertex));
+  init_tree(root);
+
+  printf("\033[32m \033[21mОбход сверху-вниз:\033[0m\n");
+  tree_traversal_downward(root);
+  printf("\n\033[32m \033[21mОбход слева-направо:\033[0m\n");
+  tree_traversal_rightward(root);
+  printf("\n\033[32m \033[21mОбход снизу-вверх:\033[0m\n");
+  tree_traversal_upward(root);
+
+  printf("\n");
+
+  printf("\nРазмер дерева: %d", tree_size(root));
+  printf("\nКонтрольная сумма дерева: %d", tree_checksum(root));
+  printf("\nВысота дерева: %d", tree_height(root));
+  printf("\nСредняя высота дерева: %.2f\n", tree_average_height(root));
+  return 0;
+}
+```
+
+4. Освоить написание вручную обходов любого заданного двоичного дерева.
+
+См. пособие и варианты заданий по обработке деревьев.
+
+### Полный текст программы
+
+```c
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+typedef struct Vertex {
+  int data;
+  struct Vertex *left;
+  struct Vertex *right;
+} Vertex;
+
+/*
+Дерево для 7 варианта
+   1
+ /   \
+2     3
+     / \
+    4   5
+       / \
+      6   7
+*/
+void init_tree(Vertex *root) {
+  srand(time(NULL));
+
+  root->data = (rand() + 1) % 21;
+
+  root->left = (Vertex *)malloc(sizeof(Vertex));
+  root->left->data = (rand() + 1) % 21;
+
+  root->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->data = (rand() + 1) % 21;
+
+  root->right->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->data = (rand() + 1) % 21;
+
+  root->right->right->left = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->left->data = (rand() + 1) % 21;
+
+  root->right->right->right = (Vertex *)malloc(sizeof(Vertex));
+  root->right->right->right->data = (rand() + 1) % 21;
+}
+
+int tree_height(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  int lh = tree_height(root->left);
+  int rh = tree_height(root->right);
+  return 1 + (lh > rh ? lh : rh);
+}
+
+int tree_checksum(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return root->data + tree_checksum(root->left) + tree_checksum(root->right);
+}
+
+int tree_size(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return 1 + tree_size(root->left) + tree_size(root->right);
+}
+
+int tree_sum_path_lengths(Vertex *root, int depth) {
+  if (root == NULL) {
+    return 0;
+  }
+  return depth + tree_sum_path_lengths(root->left, depth + 1) +
+         tree_sum_path_lengths(root->right, depth + 1);
+}
+
+float tree_average_height(Vertex *root) {
+  if (root == NULL) {
+    return 0;
+  }
+  return (float)tree_sum_path_lengths(root, 1) / tree_size(root);
+}
+
+// Root, L, R
+void tree_traversal_downward(Vertex *root) {
+  if (root != NULL) {
+    printf("%d ", root->data);
+    tree_traversal_downward(root->left);
+    tree_traversal_downward(root->right);
+  }
+}
+
+// L, Root, R
+void tree_traversal_rightward(Vertex *root) {
+  if (root != NULL) {
+    tree_traversal_rightward(root->left);
+    printf("%d ", root->data);
+    tree_traversal_rightward(root->right);
+  }
+}
+
+// L, R, Root
+void tree_traversal_upward(Vertex *root) {
+  if (root != NULL) {
+    tree_traversal_upward(root->left);
+    tree_traversal_upward(root->right);
+    printf("%d ", root->data);
+  }
+}
+
+int main() {
+  Vertex *root = (Vertex *)malloc(sizeof(Vertex));
+  init_tree(root);
+
+  printf("\033[32m \033[21mОбход сверху-вниз:\033[0m\n");
+  tree_traversal_downward(root);
+  printf("\n\033[32m \033[21mОбход слева-направо:\033[0m\n");
+  tree_traversal_rightward(root);
+  printf("\n\033[32m \033[21mОбход снизу-вверх:\033[0m\n");
+  tree_traversal_upward(root);
+
+  printf("\n");
+
+  printf("\nРазмер дерева: %d", tree_size(root));
+  printf("\nКонтрольная сумма дерева: %d", tree_checksum(root));
+  printf("\nВысота дерева: %d", tree_height(root));
+  printf("\nСредняя высота дерева: %.2f\n", tree_average_height(root));
+  return 0;
+}
+```
