@@ -9,12 +9,12 @@ import { auth } from "@/lib/auth";
 
 export const appRouter = createTRPCRouter({
   subjectAdd: baseProcedure
-    .input(z.object({ name: z.string() }))
+    .input(z.object({ name: z.string(), fullName: z.string() }))
     .mutation(async (opts) => {
       const { input } = opts;
 
       const existingSubject = await db.query.subject.findFirst({
-        where: (subj, { eq }) => eq(subj.name, input.name),
+        where: (subj, { eq }) => eq(subj.fullName, input.fullName),
       });
 
       if (existingSubject) {
@@ -24,6 +24,7 @@ export const appRouter = createTRPCRouter({
       // Create a new subject in the database
       const newSubject = await db.insert(subject).values({
         name: input.name,
+        fullName: input.fullName,
       });
 
       return newSubject;
