@@ -6,36 +6,60 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  GitBranchIcon,
-  ImagesIcon as IssuesIcon,
-  GitPullRequestIcon,
   CheckCircleIcon,
+  FoldersIcon,
+  GitBranchIcon,
+  ListChecksIcon,
+  ListTodoIcon,
+  MessagesSquareIcon,
+  SendIcon,
+  UsersIcon,
 } from "lucide-react";
 
 const workflowSteps = [
   {
-    icon: IssuesIcon,
-    title: "Create Issue",
+    icon: ListTodoIcon,
+    title: "Выберите задачу",
     description:
-      "Start by creating a GitHub Issue describing your assignment with all necessary details, resources, and requirements.",
+      "Выберите задачу, которую хотите решить и назначьте себя исполнителем.",
   },
   {
     icon: GitBranchIcon,
-    title: "Branch & Collaborate",
-    description:
-      "Create a dedicated branch for your assignment and invite up to 10 collaborators to work together on the solution.",
+    title: "Создайте ветку",
+    description: "Создайте ветку под текущую задачу.",
   },
   {
-    icon: GitPullRequestIcon,
-    title: "Submit Solution",
+    icon: FoldersIcon,
+    title: "Подготовка",
+    description: "Создайте необходимые папки и начинайте работу.",
+  },
+  {
+    icon: ListChecksIcon,
+    title: "Решение задачи",
+    description: "Запишите решение задачи в формате MDX.",
+  },
+  {
+    icon: UsersIcon,
+    title: "Работайте в команде",
     description:
-      "Once complete, create a Pull Request with your solution, including documentation and any supporting materials.",
+      "Пользуйтесь помощью остальных участников. До 10 чел. на задачу.",
+  },
+  {
+    icon: SendIcon,
+    title: "Отправьте решение",
+    description:
+      "Откройте Pull Request в основную ветку с описанием выполненной задачи.",
+  },
+  {
+    icon: MessagesSquareIcon,
+    title: "Контроль качества",
+    description:
+      "Получите обратную связь от остальных участников и внесите правки.",
   },
   {
     icon: CheckCircleIcon,
-    title: "Review & Merge",
-    description:
-      "Get feedback from peers and instructors, make improvements, and merge your verified solution to the main branch.",
+    title: "Завершите задачу",
+    description: "Завершите задачу и опубликуйте решение на сайте.",
   },
 ];
 
@@ -46,16 +70,16 @@ export function WorkflowSection() {
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight text-balance">
-            {"How Nexus Works"}
+            Как работает Nexus
           </h2>
           <p className="text-lg text-muted-foreground mt-4 text-pretty max-w-2xl mx-auto">
-            {
-              "Our GitHub-based workflow makes collaboration simple and effective. Follow these steps to transform how you approach assignments."
-            }
+            Наш GitHub-based workflow делает совместную работу простой и
+            эффективной. Следуйте этим шагам, чтобы изменить подход к выполнению
+            заданий.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 max-w-fd-container mx-auto">
           {workflowSteps.map((step, index) => (
             <Card
               key={index}
@@ -67,7 +91,7 @@ export function WorkflowSection() {
                     <step.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="text-sm font-medium text-primary">
-                    Step {index + 1}
+                    Шаг {index + 1}
                   </div>
                 </div>
                 <CardTitle className="text-lg">{step.title}</CardTitle>

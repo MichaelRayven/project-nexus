@@ -5,32 +5,34 @@ import {
   BookOpenIcon,
   TrendingUpIcon,
   HeartHandshakeIcon,
+  ArrowRightIcon,
 } from "lucide-react";
+import Link from "next/link";
 
 const benefits = [
   {
     icon: UsersIcon,
-    title: "Team Learning",
+    title: "Учитесь вместе",
     description:
-      "Work together with classmates to solve complex problems and share knowledge effectively.",
+      "Работайте вместе с одногруппниками для решения сложных задач и эффективного обмена знаниями.",
   },
   {
     icon: BookOpenIcon,
-    title: "Knowledge Sharing",
+    title: "Делитесь знаниями",
     description:
-      "Build a repository of verified solutions that benefit current and future students.",
+      "Создайте репозиторий проверенных решений, которые будут полезны для текущих и будущих студентов.",
   },
   {
     icon: TrendingUpIcon,
-    title: "Skill Development",
+    title: "Развивайте свои навыки",
     description:
-      "Learn industry-standard tools like Git and GitHub while improving your collaborative skills.",
+      "Изучайте инструменты Git и GitHub для улучшения своих навыков в командной работе.",
   },
   {
     icon: HeartHandshakeIcon,
-    title: "Peer Support",
+    title: "Помогайте друг другу",
     description:
-      "Get help when you need it and help others succeed in their academic journey.",
+      "Получайте помощь, когда вам нужна, и помогайте другим успешно завершить свою учебную деятельность.",
   },
 ];
 
@@ -41,12 +43,12 @@ export function CollaborationSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="text-3xl font-bold tracking-tight text-balance mb-6">
-              {"Stronger Together"}
+              Сильнее вместе
             </h2>
             <p className="text-lg text-muted-foreground mb-8 text-pretty">
-              {
-                "Nexus transforms individual assignments into collaborative learning experiences. Connect with peers, share knowledge, and build solutions that benefit everyone."
-              }
+              Nexus преврашает индивидуальные задания в возможность учиться друг
+              у друга и развиваться вместе. Решайте задачи вместе и помогайте
+              другим успешно завершить свою учебную деятельность.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -68,16 +70,20 @@ export function CollaborationSection() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="flex-1 sm:flex-none">
-                Start Collaborating
+              <Button size="lg" className="text-base px-8">
+                Присоединиться
+                <ArrowRightIcon className="ml-2 h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex-1 sm:flex-none bg-transparent"
-              >
-                View Examples
-              </Button>
+              <Link href="/docs">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="text-base px-8 bg-transparent"
+                >
+                  База знаний
+                  <BookOpenIcon className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
 
