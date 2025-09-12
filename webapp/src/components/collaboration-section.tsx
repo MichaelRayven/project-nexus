@@ -70,10 +70,12 @@ export function CollaborationSection() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="text-base px-8">
-                Присоединиться
-                <ArrowRightIcon className="ml-2 h-4 w-4" />
-              </Button>
+              <div>
+                <Button size="lg" className="text-base px-8">
+                  Присоединиться
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
               <Link href="/docs">
                 <Button
                   variant="outline"
@@ -87,7 +89,7 @@ export function CollaborationSection() {
             </div>
           </div>
 
-          <div>
+          <div className="lg:block hidden">
             <NetworkGraph />
           </div>
         </div>
