@@ -46,7 +46,10 @@ export function formatDuration(duration: string) {
   }
 }
 
-export function getIssueStatus(issue: GitHubIssue): { status: string; color: string } {
+export function getIssueStatus(issue: GitHubIssue): {
+  status: string;
+  color: string;
+} {
   if (issue.state === "closed") {
     return { status: "Выполнена", color: "green" };
   }
@@ -65,5 +68,5 @@ export function getIssueStatus(issue: GitHubIssue): { status: string; color: str
     return { status: "В работе", color: "yellow" };
   }
 
-  return { status: "Ожидает выполнения", color: "gray" };
+  return { status: "В очереди", color: "gray" };
 }

@@ -8,6 +8,28 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
 export const appRouter = createTRPCRouter({
+  collaboratorsList: baseProcedure.query(async () => {
+    // Fetch collaborators from GitHub API
+    const response = await fetch(
+      `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/collaborators`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("GitHub API response:", await response.text());
+      throw new Error("Не удалось получить список участников");
+    }
+
+    const collaborators = await response.json();
+    return collaborators;
+  }),
   subjectAdd: baseProcedure
     .input(z.object({ name: z.string(), fullName: z.string() }))
     .mutation(async (opts) => {
@@ -233,7 +255,7 @@ export const appRouter = createTRPCRouter({
 
     return results;
   }),
-  issueAsignSelf: baseProcedure
+  issueAssignSelf: baseProcedure
     .input(
       z.object({
         issueId: z.number(),
