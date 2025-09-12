@@ -42,7 +42,13 @@ const baseRouter = createTRPCRouter({
         subject: z.string(),
         teacher: z.string(),
         deadline: z.string(),
-        resources: z.array(z.object({ name: z.string(), url: z.url() })),
+        resources: z.array(
+          z.object({
+            name: z.string(),
+            url: z.url(),
+            type: z.enum(["link", "image"]),
+          })
+        ),
       })
     )
     .mutation(async (opts) => {
@@ -77,7 +83,11 @@ const baseRouter = createTRPCRouter({
 
       if (input.resources.length) {
         body += `\n\nРесурсы:\n${input.resources
-          .map((res) => `- [${res.name}](${res.url})`)
+          .map((res) =>
+            res.type === "link"
+              ? `- [${res.name}](${res.url})`
+              : `- ![${res.name}](${res.url})`
+          )
           .join("\n")}`;
       }
 

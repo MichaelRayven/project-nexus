@@ -19,7 +19,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
-import { Link2Icon, PlusIcon, Trash2Icon, UploadIcon } from "lucide-react";
+import {
+  ImageIcon,
+  Link2Icon,
+  PlusIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
 import { useRef } from "react";
 import { Control, useFieldArray } from "react-hook-form";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
@@ -75,7 +81,7 @@ export function ResourcesSelector({
     onSuccess: (_, { key, file }) => {
       toast.success("Файл загружен успешно");
       const fileUrl = `${process.env.NEXT_PUBLIC_S3_OBJECT}/${process.env.NEXT_PUBLIC_S3_FILE_BUCKET_NAME}/${key}`;
-      append({ name: file.name, url: fileUrl });
+      append({ name: file.name, url: fileUrl, type: "link" });
     },
     onError: (error: any) => {
       toast.error(`Ошибка загрузки: ${error.message}`);
@@ -142,6 +148,29 @@ export function ResourcesSelector({
                 )}
               />
             </div>
+            <FormField
+              control={control}
+              name={`resources.${index}.type`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      type="button"
+                      onClick={() =>
+                        field.onChange(
+                          field.value === "link" ? "image" : "link"
+                        )
+                      }
+                    >
+                      {field.value === "link" ? <Link2Icon /> : <ImageIcon />}
+                    </Button>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button
               variant="destructive"
               size="icon"
@@ -157,7 +186,7 @@ export function ResourcesSelector({
           <Button
             type="button"
             variant="outline"
-            onClick={() => append({ name: "", url: "" })}
+            onClick={() => append({ name: "", url: "", type: "link" })}
             className="w-full"
             disabled={uploading}
           >
@@ -178,7 +207,7 @@ export function ResourcesSelector({
           <DropdownMenuLabel>Тип ресурса</DropdownMenuLabel>
           <DropdownMenuGroup>
             <DropdownMenuItem
-              onClick={() => append({ name: "", url: "" })}
+              onClick={() => append({ name: "", url: "", type: "link" })}
               role="button"
               aria-description="Добавить ссылку"
               disabled={uploading}

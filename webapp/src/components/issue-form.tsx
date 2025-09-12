@@ -64,6 +64,7 @@ const formSchema = z.object({
     z.object({
       name: z.string().min(1, { message: "Название обязательно" }),
       url: z.url({ message: "Неверный URL" }),
+      type: z.enum(["link", "image"]),
     })
   ),
   duration: z.enum(["short", "medium", "long"]),
@@ -139,9 +140,13 @@ export function IssueForm({
 
   function getPreviewBody(value: string) {
     let previewBody = value;
-    if (resources?.length > 0) {
+    if (resources.length > 0) {
       previewBody += `\n\nРесурсы:\n${resources
-        .map((res: any) => `- [${res.name}](${res.url})`)
+        .map((res) =>
+          res.type === "link"
+            ? `- [${res.name}](${res.url})`
+            : `- ![${res.name}](${res.url || "null"})`
+        )
         .join("\n")}`;
     }
     previewBody += `\n\n---\n*Перед тем как начать выполнять задание, не забудьте назначить себя исполнителем.*`;
