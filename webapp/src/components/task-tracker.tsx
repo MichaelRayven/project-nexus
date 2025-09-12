@@ -23,8 +23,8 @@ export function TaskTracker() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 max-w-fd-container mx-auto">
       {days.map((day, index) => (
-        <div key={index} className="relative group">
-          <Card className="overflow-hidden hover:shadow-lg transition-shadow max-h-96 h-full overflow-y-auto">
+        <div key={index} className="relative group overflow-hidden rounded-xl">
+          <Card className="hover:shadow-lg transition-shadow max-h-96 h-full overflow-y-auto">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
                 <div className="text-sm font-medium text-primary">
