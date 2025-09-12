@@ -52,7 +52,7 @@ export default async function Layout({ children }: LayoutProps<"/">) {
                 <span>Задача</span>
               </Button>
             }
-          ></IssueDialog>
+          />
         </div>
       ),
       secondary: true,

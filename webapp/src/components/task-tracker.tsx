@@ -5,6 +5,9 @@ import { trpc } from "@/trpc/client";
 import { addDays, format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { TaskView } from "./task-view";
+import { IssueDialog } from "./issue-dialog";
+import { Button } from "./ui/button";
+import { PlusIcon } from "lucide-react";
 
 export function TaskTracker() {
   const { data } = trpc.issuesWeek.useQuery();
@@ -14,7 +17,8 @@ export function TaskTracker() {
     const updatedDate = addDays(date, i);
 
     return {
-      date: format(updatedDate, "P", { locale: ru }),
+      date: updatedDate,
+      formattedDate: format(updatedDate, "P", { locale: ru }),
       weekday: format(updatedDate, "EEEE", { locale: ru }),
       tasks: data?.[i] || [],
     };
@@ -26,10 +30,18 @@ export function TaskTracker() {
         <div key={index} className="relative group overflow-hidden rounded-xl">
           <Card className="hover:shadow-lg transition-shadow max-h-96 h-full overflow-y-auto">
             <CardHeader className="pb-4">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 justify-between">
                 <div className="text-sm font-medium text-primary">
-                  {day.date}
+                  {day.formattedDate}
                 </div>
+                <IssueDialog
+                  initialDeadline={day.date}
+                  trigger={
+                    <Button variant="ghost" size="icon">
+                      <PlusIcon />
+                    </Button>
+                  }
+                />
               </div>
               <CardTitle className="text-lg capitalize">
                 {day.weekday}
