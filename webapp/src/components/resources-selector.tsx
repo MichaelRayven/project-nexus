@@ -25,6 +25,13 @@ import { Control, useFieldArray } from "react-hook-form";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import { toast } from "sonner";
 
+async function getFileChecksum(file: File) {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 interface ResourcesSelectorProps {
   addButtonText?: string;
   className?: string;
@@ -45,14 +52,25 @@ export function ResourcesSelector({
   const uploadUrlMutation = trpc.getUploadUrl.useMutation();
 
   const uploadMutation = useMutation({
-    mutationFn: ({ url, file }: { url: string; key: string; file: File }) => {
-      return fetch(url, {
+    mutationFn: async ({
+      url,
+      file,
+    }: {
+      url: string;
+      key: string;
+      file: File;
+    }) => {
+      const res = await fetch(url, {
         method: "PUT",
         body: file,
         headers: {
           "Content-Type": file.type,
         },
       });
+      if (!res.ok) {
+        throw new Error("Не удалось загрузить файл");
+      }
+      return res;
     },
     onSuccess: (_, { key, file }) => {
       toast.success("Файл загружен успешно");
@@ -78,6 +96,7 @@ export function ResourcesSelector({
       const { url, key } = await uploadUrlMutation.mutateAsync({
         name: file.name,
         type: file.type,
+        checksum: await getFileChecksum(file),
       });
       uploadMutation.mutate({ url, key, file });
     } catch (error: any) {

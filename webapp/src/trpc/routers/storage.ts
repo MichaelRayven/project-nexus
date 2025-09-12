@@ -7,11 +7,13 @@ import { s3Client } from "@/lib/s3";
 
 export const storageRouter = createTRPCRouter({
   getUploadUrl: collaboratorProcedure
-    .input(z.object({ name: z.string(), type: z.string() }))
+    .input(
+      z.object({ name: z.string(), type: z.string(), checksum: z.string() })
+    )
     .mutation(async (opts) => {
       const { input } = opts;
 
-      const key = `${crypto.randomUUID()}.${input.name.split(".").pop()}`;
+      const key = `${input.checksum}.${input.name.split(".").pop()}`;
       const command = new PutObjectCommand({
         Bucket: env.NEXT_PUBLIC_S3_FILE_BUCKET_NAME,
         Key: key,
