@@ -5,7 +5,15 @@ import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { CalendarIcon, PlusIcon, XIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  CameraIcon,
+  FileIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import Markdown from "react-markdown";
@@ -18,6 +26,15 @@ import { SubjectSelector } from "./subject-selector";
 import { TeacherSelector } from "./teacher-selector";
 import { Button } from "./ui/button";
 import { Calendar } from "./ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -360,49 +377,69 @@ export function IssueForm({
               render={() => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Ресурсы</FormLabel>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-4 max-h-32 overflow-y-auto">
                     {fields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="flex flex-col md:flex-row gap-2"
-                      >
-                        <FormField
-                          control={form.control}
-                          name={`resources.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="Название ресурса"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`resources.${index}.url`}
-                          render={({ field }) => (
-                            <FormItem className="flex-2">
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="https://example.com"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => remove(index)}
-                        >
-                          <XIcon />
-                        </Button>
+                      <div key={field.id} className="flex gap-2 pr-2">
+                        <div className="flex-1 flex flex-col md:flex-row gap-2">
+                          <FormField
+                            control={form.control}
+                            name={`resources.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Название ресурса"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`resources.${index}.url`}
+                            render={({ field }) => (
+                              <FormItem className="flex-2">
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="https://example.com"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <MoreVerticalIcon />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56" align="start">
+                            <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem>
+                                <UploadIcon />
+                                Загрузить файл
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <CameraIcon />
+                                Добавить фото
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => remove(index)}
+                            >
+                              <Trash2Icon />
+                              Удалить
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     ))}
                   </div>
