@@ -1,13 +1,16 @@
-import { z } from "zod";
-import { baseProcedure, createTRPCRouter } from "../init";
 import { db } from "@/db";
 import { subject, teacher } from "@/db/schema";
-import { addDays, format, parse } from "date-fns";
-import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
+import { addDays, format, parse } from "date-fns";
+import { headers } from "next/headers";
+import { z } from "zod";
+import { baseProcedure, createTRPCRouter, mergeRouters } from "../init";
+import { teacherRouter } from "./teacher";
+import { subjectRouter } from "./subject";
+import { storageRouter } from "./storage";
 
-export const appRouter = createTRPCRouter({
+const baseRouter = createTRPCRouter({
   collaboratorsList: baseProcedure.query(async () => {
     // Fetch collaborators from GitHub API
     const response = await fetch(
@@ -17,7 +20,6 @@ export const appRouter = createTRPCRouter({
         headers: {
           Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
           Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
         },
       }
     );
@@ -30,85 +32,6 @@ export const appRouter = createTRPCRouter({
     const collaborators = await response.json();
     return collaborators;
   }),
-  subjectAdd: baseProcedure
-    .input(z.object({ name: z.string(), fullName: z.string() }))
-    .mutation(async (opts) => {
-      const { input } = opts;
-
-      const existingSubject = await db.query.subject.findFirst({
-        where: (subj, { eq }) => eq(subj.fullName, input.fullName),
-      });
-
-      if (existingSubject) {
-        throw new Error("Предмет с таким именем уже существует");
-      }
-
-      // Create a new subject in the database
-      const newSubject = await db.insert(subject).values({
-        name: input.name,
-        fullName: input.fullName,
-      });
-
-      return newSubject;
-    }),
-  subjectList: baseProcedure.query(async () => {
-    // Retrieve subjects from a datasource, this is an imaginary database
-    const subjects = await db.query.subject.findMany({
-      where: (subj, { eq }) => eq(subj.deleted, false),
-    });
-
-    return subjects;
-  }),
-  teacherList: baseProcedure.query(async () => {
-    // Retrieve teachers from a datasource, this is an imaginary database
-    const teachers = await db.query.teacher.findMany({
-      where: (teach, { eq }) => eq(teach.deleted, false),
-    });
-
-    return teachers;
-  }),
-  teacherAdd: baseProcedure
-    .input(
-      z.object({
-        name: z.string(),
-        surname: z.string(),
-        paternal: z.string(),
-        email: z.string().email(),
-      })
-    )
-    .mutation(async (opts) => {
-      const { input } = opts;
-
-      const existingTeacher = await db.query.teacher.findFirst({
-        where: (teach, { and, eq }) =>
-          and(
-            eq(teach.name, input.name),
-            eq(teach.surname, input.surname),
-            eq(teach.paternal, input.paternal)
-          ),
-      });
-
-      if (existingTeacher) {
-        throw new Error("Учитель с таким полным именем уже существует");
-      }
-
-      const existingEmail = await db.query.teacher.findFirst({
-        where: (teach, { eq }) => eq(teach.email, input.email),
-      });
-
-      if (existingEmail) {
-        throw new Error("Учитель с такой электронной почтой уже существует");
-      }
-
-      // Create a new teacher in the database
-      const newTeacher = await db.insert(teacher).values({
-        name: input.name,
-        surname: input.surname,
-        paternal: input.paternal,
-        email: input.email,
-      });
-      return newTeacher;
-    }),
   issueAdd: baseProcedure
     .input(
       z.object({
@@ -316,5 +239,13 @@ export const appRouter = createTRPCRouter({
       return (await response.json()) as GitHubIssue;
     }),
 });
+
+export const appRouter = mergeRouters(
+  baseRouter,
+  teacherRouter,
+  subjectRouter,
+  storageRouter
+);
+
 // export type definition of API
 export type AppRouter = typeof appRouter;
