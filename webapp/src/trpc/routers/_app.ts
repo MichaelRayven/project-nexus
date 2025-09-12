@@ -76,7 +76,7 @@ const baseRouter = createTRPCRouter({
       let body = `${input.description}`;
 
       if (input.resources.length) {
-        body += `\n\nResources:\n${input.resources
+        body += `\n\nРесурсы:\n${input.resources
           .map((res) => `- [${res.name}](${res.url})`)
           .join("\n")}`;
       }

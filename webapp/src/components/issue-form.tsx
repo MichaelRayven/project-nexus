@@ -93,6 +93,8 @@ export function IssueForm({
     },
   });
 
+  const resources = form.watch("resources");
+
   const { data: subjects } = trpc.subjectList.useQuery();
   const { data: teachers } = trpc.teacherList.useQuery();
   const utils = trpc.useUtils();
@@ -123,14 +125,27 @@ export function IssueForm({
         if (valid) setStep(2);
       });
   }
+
   function handlePrev() {
     setStep(1);
   }
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate({
       ...values,
       deadline: format(values.deadline, "MM-dd-yyyy"),
     });
+  }
+
+  function getPreviewBody(value: string) {
+    let previewBody = value;
+    if (resources?.length > 0) {
+      previewBody += `\n\nРесурсы:\n${resources
+        .map((res: any) => `- [${res.name}](${res.url})`)
+        .join("\n")}`;
+    }
+    previewBody += `\n\n---\n*Перед тем как начать выполнять задание, не забудьте назначить себя исполнителем.*`;
+    return previewBody;
   }
 
   return (
@@ -332,7 +347,7 @@ export function IssueForm({
                             rehypePlugins={[rehypeKatex]}
                             remarkPlugins={[remarkMath]}
                           >
-                            {field.value}
+                            {getPreviewBody(field.value)}
                           </Markdown>
                         </div>
                       ) : (
