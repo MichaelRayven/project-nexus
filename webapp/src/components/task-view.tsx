@@ -40,6 +40,10 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
 
   const status = getIssueStatus(issue);
 
+  const isAssignee = issue.assignees.some(
+    (assignee) => assignee.login === session?.user.username
+  );
+
   return (
     <div key={issue.id}>
       <div className="pb-4">
@@ -146,9 +150,7 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
           </div>
 
           {/* Assign Self Button */}
-          {issue.assignees.filter(
-            (assignee) => assignee.login === session?.user.username
-          ).length === 0 && (
+          {!isAssignee && (
             <div className="pt-2">
               <Button
                 onClick={onAssignSelf}
