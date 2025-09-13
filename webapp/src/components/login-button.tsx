@@ -9,14 +9,14 @@ export function LogInButton() {
     await authClient.signIn.social({
       provider: "github",
       callbackURL: "/",
-      errorCallbackURL: "/error",
-      newUserCallbackURL: "/welcome",
+      errorCallbackURL: "/",
+      newUserCallbackURL: "/",
     });
   };
 
   return (
     <Button onClick={handleClick}>
-      <LogInIcon /> Login
+      <LogInIcon /> Войти
     </Button>
   );
 }

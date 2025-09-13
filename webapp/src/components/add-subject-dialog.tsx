@@ -26,11 +26,19 @@ import {
   FormMessage,
 } from "./ui/form";
 import { trpc } from "@/trpc/client";
-import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners"
+import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z
+    .string()
+    .min(1, {
+      message: "Сокращенное название обязательно",
+    })
+    .max(150, {
+      message: "Сокращенное название не может быть длиннее 150 символов",
+    }),
+  fullName: z
     .string()
     .min(1, {
       message: "Название обязательно",
@@ -40,7 +48,13 @@ const formSchema = z.object({
     }),
 });
 
-export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigger?: ReactNode, onSubjectAdded?: () => void }) {
+export function AddSubjectDialog({
+  trigger,
+  onSubjectAdded = () => {},
+}: {
+  trigger?: ReactNode;
+  onSubjectAdded?: () => void;
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,7 +72,7 @@ export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigg
     },
     onError: (error) => {
       toast.error(error.message);
-    }
+    },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -76,10 +90,7 @@ export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigg
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-8"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
               name="name"
@@ -87,15 +98,29 @@ export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigg
                 <FormItem>
                   <FormLabel>Название</FormLabel>
                   <FormControl>
+                    <Input placeholder="АиГ..." maxLength={150} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Отображаемое сокращенное название предмета.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fullName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Полное название</FormLabel>
+                  <FormControl>
                     <Input
                       placeholder="Алгебра и геометрия..."
                       maxLength={150}
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Отображаемое название предмета.
-                  </FormDescription>
+                  <FormDescription>Полное название предмета.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -104,7 +129,11 @@ export function AddSubjectDialog({ trigger, onSubjectAdded = () => {} }: { trigg
               <DialogClose asChild>
                 <Button variant="outline">Отмена</Button>
               </DialogClose>
-              <Button type="submit" className="w-[100px] items-center justify-center" disabled={mutation.isPending}>
+              <Button
+                type="submit"
+                className="w-[100px] items-center justify-center"
+                disabled={mutation.isPending}
+              >
                 {mutation.isPending ? <Spinner color="white" /> : "Сохранить"}
               </Button>
             </DialogFooter>
