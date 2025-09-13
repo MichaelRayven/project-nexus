@@ -20,7 +20,7 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
       { issueId: issue.number },
       {
         onSuccess: () => {
-          utils.issuesWeek.invalidate();
+          utils.issueListWeek.invalidate();
         },
       }
     );

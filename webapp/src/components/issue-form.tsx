@@ -106,8 +106,7 @@ export function IssueForm({
     onSuccess: () => {
       form.reset();
       toast.success("Задача добавлена");
-      utils.issuesWeek.invalidate();
-      utils.issueList.invalidate();
+      utils.issueListWeek.invalidate();
       onIssueAdded();
     },
   });

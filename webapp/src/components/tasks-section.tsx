@@ -1,7 +1,4 @@
 import { auth } from "@/lib/auth";
-import { trpc } from "@/trpc/server";
-import { addDays, format } from "date-fns";
-import { ru } from "date-fns/locale";
 import { headers } from "next/dist/server/request/headers";
 import { TaskTracker } from "./task-tracker";
 
@@ -13,19 +10,6 @@ export async function TasksSection() {
 
   // Skip rendering if user is not authenticated
   if (!session) return null;
-
-  const data = await trpc.issuesWeek();
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    const updatedDate = addDays(date, i);
-
-    return {
-      date: format(updatedDate, "P", { locale: ru }),
-      weekday: format(updatedDate, "EEEE", { locale: ru }),
-      tasks: data?.[i] || [],
-    };
-  });
 
   return (
     <section id="features" className="py-24 bg-muted/30">

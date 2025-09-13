@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 import { PlusIcon } from "lucide-react";
 
 export function TaskTracker() {
-  const { data } = trpc.issuesWeek.useQuery();
+  const { data } = trpc.issueListWeek.useQuery();
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
