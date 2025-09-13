@@ -48,9 +48,11 @@ export function TaskTracker() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {day.tasks.map((task) => (
-                <TaskView key={task.id} issue={task} />
-              ))}
+              {day.tasks
+                .filter((task) => task !== null)
+                .map((task) => (
+                  <TaskView key={task.id} issue={task} />
+                ))}
             </CardContent>
           </Card>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 to-primary/60 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
