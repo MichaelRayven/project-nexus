@@ -1,49 +1,19 @@
 "use client";
 
-import { cn, getIssueStatus } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
+import { IssueNode } from "@/lib/interface";
+import { cn } from "@/lib/utils";
+import { BookOpenIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { CardTitle } from "./ui/card";
-import { authClient } from "@/lib/auth-client";
-import { UsersIcon, BookOpenIcon } from "lucide-react";
-import { IssueNode } from "@/lib/interface";
+import { useIssue } from "@/hooks/use-issue";
 
 export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
-  const mutation = trpc.issueAssignSelf.useMutation();
-  const utils = trpc.useUtils();
-  const { data: session, isPending, error, refetch } = authClient.useSession();
-
-  const onAssignSelf = async () => {
-    mutation.mutate(
-      { issueId: issue.number },
-      {
-        onSuccess: () => {
-          utils.issueListWeek.invalidate();
-        },
-      }
-    );
-  };
-
-  const labels = [...(issue.labels?.nodes || [])];
-  const teacherIdx = labels.findIndex((label) =>
-    label?.name?.includes("Преподаватель:")
-  );
-  const teacherLabel =
-    teacherIdx !== -1 ? labels.splice(teacherIdx, 1)[0] : undefined;
-  const subjectIdx = labels.findIndex((label) =>
-    label?.name?.includes("Предмет:")
-  );
-  const subjectLabel =
-    subjectIdx !== -1 ? labels.splice(subjectIdx, 1)[0] : undefined;
-
-  const status = getIssueStatus(issue);
-
-  const isAssignee = issue.assignees?.nodes?.some(
-    (assignee) => assignee?.login === session?.user.username
-  );
+  const { teacherLabel, subjectLabel, categoryLabel, durationLabel, status } =
+    useIssue({
+      issueId: issue.number,
+    });
 
   return (
     <div key={issue.id}>
@@ -59,30 +29,24 @@ export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
               variant="default"
               className={cn(
                 "text-xs",
-                status.status === "COMPLETED"
+                status?.status === "COMPLETED"
                   ? "bg-green-100 text-green-800"
-                  : status.status === "EXPIRED"
+                  : status?.status === "EXPIRED"
                   ? "bg-red-100 text-red-800"
-                  : status.status === "IN_PROGRESS"
+                  : status?.status === "IN_PROGRESS"
                   ? "bg-yellow-100 text-yellow-800"
-                  : status.status === "IN_REVIEW"
+                  : status?.status === "IN_REVIEW"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-gray-100 text-gray-800"
               )}
             >
-              {status.message}
+              {status?.message}
             </Badge>
           </div>
         </div>
         <CardTitle className="text-lg">
           <Link
-            href={
-              status.status === "IN_REVIEW"
-                ? issue.closedByPullRequestsReferences!.nodes![0]!.url
-                : issue.url
-            }
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`/task/${issue.number}`}
             className="hover:text-primary transition-colors line-clamp-3"
           >
             {issue.title}
@@ -93,17 +57,20 @@ export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
       <div>
         {/* Labels */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {labels
-            .filter((label) => !label?.name?.toLowerCase().includes("дедлайн"))
-            .map((label) => (
-              <Badge
-                key={label?.id}
-                className="text-xs"
-                style={{ backgroundColor: `#${label?.color}` }}
-              >
-                {label?.name?.split(":")[1] || label?.name}
-              </Badge>
-            ))}
+          <Badge
+            key={categoryLabel?.id}
+            className="text-xs"
+            style={{ backgroundColor: `#${categoryLabel?.color}` }}
+          >
+            {categoryLabel?.name?.split(":")[1] || categoryLabel?.name}
+          </Badge>
+          <Badge
+            key={durationLabel?.id}
+            className="text-xs"
+            style={{ backgroundColor: `#${durationLabel?.color}` }}
+          >
+            {durationLabel?.name?.split(":")[1] || durationLabel?.name}
+          </Badge>
         </div>
 
         {/* Details */}
@@ -155,20 +122,6 @@ export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
               <span className="text-muted-foreground">отсутствуют</span>
             )}
           </div>
-
-          {/* Assign Self Button */}
-          {!isAssignee && (
-            <div className="pt-2">
-              <Button
-                onClick={onAssignSelf}
-                size="sm"
-                className="w-full"
-                disabled={mutation.isPending}
-              >
-                {mutation.isPending ? "Назначаем..." : "Выполнить"}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 

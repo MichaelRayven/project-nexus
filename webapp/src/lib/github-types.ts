@@ -35583,3 +35583,24 @@ export type GetIssuesByLabelQuery = { repository?: { issues: { nodes?: Array<{ i
                 | { __typename: 'Organization', login: string, id: string }
                 | { __typename: 'User', login: string, id: string }
                } } | null | undefined> | null | undefined } | null | undefined } | null | undefined> | null | undefined } } | null | undefined };
+
+export type GetIssueByNumberQueryVariables = Exact<{
+  owner: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  number: Scalars['Int']['input'];
+}>;
+
+
+export type GetIssueByNumberQuery = { repository?: { issue?: { id: string, number: number, title: string, body: string, url: string, state: IssueState, createdAt: string, updatedAt: string, closedAt?: string | null | undefined, author?:
+        | { login: string, avatarUrl: string, url: string }
+        | { login: string, avatarUrl: string, url: string }
+        | { login: string, avatarUrl: string, url: string }
+        | { login: string, avatarUrl: string, url: string }
+        | { login: string, avatarUrl: string, url: string }
+       | null | undefined, assignees: { nodes?: Array<{ id: string, login: string, avatarUrl: string, url: string } | null | undefined> | null | undefined }, labels?: { nodes?: Array<{ id: string, name: string, color: string, description?: string | null | undefined } | null | undefined> | null | undefined } | null | undefined, comments: { totalCount: number }, milestone?: { id: string, number: number, title: string } | null | undefined, linkedBranches: { nodes?: Array<{ id: string, ref?: { id: string, name: string, repository: { id: string, name: string, nameWithOwner: string, owner:
+                | { __typename: 'Organization', login: string, id: string }
+                | { __typename: 'User', login: string, id: string }
+               } } | null | undefined } | null | undefined> | null | undefined }, closedByPullRequestsReferences?: { nodes?: Array<{ __typename: 'PullRequest', id: string, url: string, number: number, title: string, state: PullRequestState, isDraft: boolean, isInMergeQueue: boolean, createdAt: string, repository: { id: string, name: string, nameWithOwner: string, owner:
+              | { __typename: 'Organization', login: string, id: string }
+              | { __typename: 'User', login: string, id: string }
+             } } | null | undefined> | null | undefined } | null | undefined } | null | undefined } | null | undefined };

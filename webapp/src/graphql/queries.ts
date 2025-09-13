@@ -96,3 +96,92 @@ export const GetIssuesByLabel = gql`
     }
   }
 `;
+
+export const GetIssueByNumber = gql`
+  query GetIssueByNumber($owner: String!, $name: String!, $number: Int!) {
+    repository(owner: $owner, name: $name) {
+      issue(number: $number) {
+        id
+        number
+        title
+        body
+        url
+        state
+        createdAt
+        updatedAt
+        closedAt
+        author {
+          login
+          avatarUrl
+          url
+        }
+        assignees(first: 10) {
+          nodes {
+            id
+            login
+            avatarUrl
+            url
+          }
+        }
+        labels(first: 20) {
+          nodes {
+            id
+            name
+            color
+            description
+          }
+        }
+        comments {
+          totalCount
+        }
+        milestone {
+          id
+          number
+          title
+        }
+        linkedBranches(first: 10) {
+          nodes {
+            id
+            ref {
+              id
+              name
+              repository {
+                id
+                name
+                nameWithOwner
+                owner {
+                  login
+                  __typename
+                  id
+                }
+              }
+            }
+          }
+        }
+        closedByPullRequestsReferences(first: 10) {
+          nodes {
+            id
+            url
+            number
+            title
+            state
+            isDraft
+            isInMergeQueue
+            createdAt
+            repository {
+              id
+              name
+              nameWithOwner
+              owner {
+                login
+                __typename
+                id
+              }
+            }
+            __typename
+          }
+        }
+      }
+    }
+  }
+`;

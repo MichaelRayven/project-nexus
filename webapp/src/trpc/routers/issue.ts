@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { githubGraphQL } from "@/graphql/client";
-import { GetIssuesByLabel } from "@/graphql/queries";
+import { GetIssuesByLabel, GetIssueByNumber } from "@/graphql/queries";
 import { CreateLinkedBranch } from "@/graphql/mutations";
 import { GetIssuesByLabelQuery } from "@/graphql/types";
 import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
@@ -15,6 +15,30 @@ import { IssueNode } from "@/lib/interface";
 import { CreateLinkedBranchMutation } from "@/lib/github-types";
 
 export const issueRouter = createTRPCRouter({
+  getById: authedProcedure
+    .input(
+      z.object({
+        issueId: z.number(),
+      })
+    )
+    .query(async (opts): Promise<IssueNode | null> => {
+      const { issueId } = opts.input;
+
+      try {
+        const result = await githubGraphQL.request<{
+          repository: { issue: IssueNode | null };
+        }>(GetIssueByNumber, {
+          owner: process.env.GITHUB_REPOSITORY_OWNER,
+          name: process.env.GITHUB_REPOSITORY_NAME,
+          number: issueId,
+        });
+
+        return result.repository?.issue || null;
+      } catch (error) {
+        console.error("GraphQL error:", error);
+        throw new Error("Не удалось получить задачу");
+      }
+    }),
   issueListDay: authedProcedure
     .input(
       z.object({
