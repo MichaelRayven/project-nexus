@@ -13,44 +13,52 @@ export function useIssue({ issueId }: UseIssueProps) {
   const { data: issue, isLoading } = trpc.getById.useQuery({ issueId });
 
   // Helper functions
-  const hasLinkedBranches = (issue?.linkedBranches?.nodes?.length ?? 0) > 0;
-  const hasPullRequests =
-    (issue?.closedByPullRequestsReferences?.nodes?.length ?? 0) > 0;
+  const linkedBranches =
+    issue?.linkedBranches?.nodes?.filter((branch) => branch?.ref) ?? [];
+
+  const assignees =
+    issue?.assignees?.nodes?.filter((assignee) => assignee !== null) ?? [];
+
+  const labels = issue?.labels?.nodes?.filter((label) => label !== null) ?? [];
+
+  const pullRequests =
+    issue?.closedByPullRequestsReferences?.nodes?.filter((pr) => pr !== null) ??
+    [];
+
   const isAssignee = issue?.assignees?.nodes?.some(
     (assignee) => assignee?.login === session?.user.username
   );
-  const canCreateBranch = isAssignee && !hasLinkedBranches && !hasPullRequests;
+
   const status = issue ? getIssueStatus(issue) : null;
 
   // Extract labels and metadata
-  const labels = issue ? [...(issue.labels?.nodes || [])] : [];
+
   const teacherIdx = labels.findIndex((label) =>
-    label?.name?.includes("Преподаватель:")
+    label?.name?.startsWith("Преподаватель:")
   );
   const teacherLabel =
     teacherIdx !== -1 ? labels.splice(teacherIdx, 1)[0] : undefined;
 
   const subjectIdx = labels.findIndex((label) =>
-    label?.name?.includes("Предмет:")
+    label?.name?.startsWith("Предмет:")
   );
   const subjectLabel =
     subjectIdx !== -1 ? labels.splice(subjectIdx, 1)[0] : undefined;
 
-  const deadlineIdx = labels.findIndex(
-    (label) =>
-      label?.name?.includes("дедлайн:") || label?.name?.includes("Дедлайн:")
+  const deadlineIdx = labels.findIndex((label) =>
+    label?.name?.startsWith("Дедлайн:")
   );
   const deadlineLabel =
     deadlineIdx !== -1 ? labels.splice(deadlineIdx, 1)[0] : undefined;
 
   const durationIdx = labels.findIndex((label) =>
-    label?.name?.includes("Длительность:")
+    label?.name?.startsWith("Длительность:")
   );
   const durationLabel =
     durationIdx !== -1 ? labels.splice(durationIdx, 1)[0] : undefined;
 
   const categoryIdx = labels.findIndex((label) =>
-    label?.name?.includes("Категория:")
+    label?.name?.startsWith("Категория:")
   );
   const categoryLabel =
     categoryIdx !== -1 ? labels.splice(categoryIdx, 1)[0] : undefined;
@@ -59,13 +67,12 @@ export function useIssue({ issueId }: UseIssueProps) {
     // Data
     issue,
     isLoading,
-    session,
 
     // Computed values
-    hasLinkedBranches,
-    hasPullRequests,
+    linkedBranches,
+    pullRequests,
+    assignees,
     isAssignee,
-    canCreateBranch,
     status,
     labels,
     teacherLabel,

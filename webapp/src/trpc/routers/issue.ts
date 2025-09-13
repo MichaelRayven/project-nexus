@@ -213,16 +213,52 @@ export const issueRouter = createTRPCRouter({
         const { issueId, name } = opts.input;
 
         try {
+          // Get the default branch HEAD commit SHA and repository ID
+          const repoResult = await githubGraphQL.request<{
+            repository: {
+              id: string;
+              defaultBranchRef: { target: { oid: string } };
+            };
+          }>(
+            `query GetDefaultBranch($owner: String!, $name: String!) {
+              repository(owner: $owner, name: $name) {
+                id
+                defaultBranchRef {
+                  target {
+                    ... on Commit {
+                      oid
+                    }
+                  }
+                }
+              }
+            }`,
+            {
+              owner: process.env.GITHUB_REPOSITORY_OWNER,
+              name: process.env.GITHUB_REPOSITORY_NAME,
+            }
+          );
+
+          if (
+            !repoResult.repository?.defaultBranchRef?.target?.oid ||
+            !repoResult.repository?.id
+          ) {
+            throw new Error("Не удалось получить информацию о репозитории");
+          }
+
           const result =
             await githubGraphQL.request<CreateLinkedBranchMutation>(
               CreateLinkedBranch,
               {
                 input: {
                   issueId: issueId,
-                  name: name,
+                  name: `refs/heads/${name}`,
+                  oid: repoResult.repository.defaultBranchRef.target.oid,
+                  repositoryId: repoResult.repository.id,
                 },
               }
             );
+
+          console.log("CreateLinkedBranch result:", result);
 
           if (result.createLinkedBranch?.linkedBranch?.id) {
             return {

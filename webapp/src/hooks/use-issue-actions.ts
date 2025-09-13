@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { trpc } from "@/trpc/client";
 import { toast } from "sonner";
-import { IssueNode } from "@/lib/interface";
 
 interface UseIssueActionsProps {
   issueId: string;
@@ -37,17 +35,6 @@ export function useIssueActions({
     },
   });
 
-  const createBranchMutation = trpc.createLinkedBranch.useMutation({
-    onSuccess: () => {
-      toast.success("Ветка создана успешно");
-      utils.getById.invalidate({ issueId: issueNumber });
-      utils.issueListWeek.invalidate(); // Also invalidate weekly data
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   // Action handlers
   const handleAssignSelf = () => {
     assignSelfMutation.mutate({ issueId: issueNumber });
@@ -55,17 +42,6 @@ export function useIssueActions({
 
   const handleUnassignSelf = () => {
     unassignSelfMutation.mutate({ issueId: issueNumber });
-  };
-
-  const handleCreateBranch = (branchName: string) => {
-    if (!branchName.trim()) {
-      toast.error("Введите название ветки");
-      return;
-    }
-    createBranchMutation.mutate({
-      issueId: issueId,
-      name: branchName,
-    });
   };
 
   const handleSendForReview = (issueUrl: string) => {
@@ -81,12 +57,10 @@ export function useIssueActions({
     // Actions
     handleAssignSelf,
     handleUnassignSelf,
-    handleCreateBranch,
     handleSendForReview,
     handleEditIssue,
     // Mutation states
     isAssigning: assignSelfMutation.isPending,
     isUnassigning: unassignSelfMutation.isPending,
-    isCreatingBranch: createBranchMutation.isPending,
   };
 }

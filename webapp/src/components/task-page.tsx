@@ -1,31 +1,33 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { useIssue } from "@/hooks/use-issue";
 import { useIssueActions } from "@/hooks/use-issue-actions";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { BranchCreationDialog } from "./branch-creation-dialog";
 
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Card, CardContent, CardHeader } from "./ui/card";
 import {
-  CalendarIcon,
-  ClockIcon,
-  UserIcon,
-  BookOpenIcon,
-  UsersIcon,
-  GitBranchIcon,
-  SendIcon,
-  CheckCircleIcon,
-  ExternalLinkIcon,
   ArrowLeftIcon,
-  EditIcon,
-  UserMinusIcon,
+  BookOpenIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExternalLinkIcon,
+  GitBranchIcon,
   GitPullRequestIcon,
+  SendIcon,
+  UserIcon,
+  UserMinusIcon,
+  UsersIcon,
 } from "lucide-react";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader } from "./ui/card";
 import { Separator } from "./ui/separator";
 
 interface TaskPageProps {
@@ -37,11 +39,10 @@ export function TaskPage({ issueId }: TaskPageProps) {
   const {
     issue,
     isLoading,
-    session,
-    hasLinkedBranches,
-    hasPullRequests,
+    linkedBranches,
+    pullRequests,
+    assignees,
     isAssignee,
-    canCreateBranch,
     status,
     labels,
     teacherLabel,
@@ -54,12 +55,10 @@ export function TaskPage({ issueId }: TaskPageProps) {
   const {
     handleAssignSelf,
     handleUnassignSelf,
-    handleCreateBranch,
     handleSendForReview,
     handleEditIssue,
     isAssigning,
     isUnassigning,
-    isCreatingBranch,
   } = useIssueActions({
     issueId: issue?.id || "",
     issueNumber: issue?.number || 0,
@@ -100,7 +99,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
     <div className="container mx-auto px-6 py-8 max-w-6xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4 justify-between">
           <Button
             variant="outline"
             onClick={() => router.back()}
@@ -108,15 +107,6 @@ export function TaskPage({ issueId }: TaskPageProps) {
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Назад
-          </Button>
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            onClick={() => handleEditIssue(issue.url)}
-            className="flex items-center gap-2"
-          >
-            <EditIcon className="h-4 w-4" />
-            Редактировать
           </Button>
           <Button
             variant="outline"
@@ -130,7 +120,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
 
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex flex-col items-start sm:flex-row sm:items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold">{issue.title}</h1>
               <Badge
                 variant="default"
@@ -167,7 +157,10 @@ export function TaskPage({ issueId }: TaskPageProps) {
             </CardHeader>
             <CardContent>
               <div className="prose prose-lg max-w-none">
-                <Markdown remarkPlugins={[remarkGfm]}>
+                <Markdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
                   {issue.body || "*Описание отсутствует*"}
                 </Markdown>
               </div>
@@ -206,16 +199,8 @@ export function TaskPage({ issueId }: TaskPageProps) {
                 </Button>
               )}
 
-              {canCreateBranch && (
-                <Button
-                  onClick={() => handleCreateBranch("")}
-                  variant="outline"
-                  className="w-full"
-                  size="sm"
-                >
-                  <GitBranchIcon className="h-4 w-4 mr-2" />
-                  {isCreatingBranch ? "Создаем..." : "Создать"}
-                </Button>
+              {linkedBranches.length === 0 && pullRequests.length === 0 && (
+                <BranchCreationDialog issue={issue} />
               )}
 
               {status?.status === "IN_PROGRESS" && (
@@ -226,7 +211,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
                   size="sm"
                 >
                   <SendIcon className="h-4 w-4 mr-2" />
-                  Отправить на проверку
+                  На проверку
                 </Button>
               )}
             </CardContent>
@@ -332,9 +317,9 @@ export function TaskPage({ issueId }: TaskPageProps) {
               <h3 className="text-lg font-semibold">Исполнители</h3>
             </CardHeader>
             <CardContent>
-              {issue.assignees?.nodes?.length ? (
+              {assignees.length > 0 ? (
                 <div className="space-y-3">
-                  {issue.assignees.nodes.map((assignee) => (
+                  {assignees.map((assignee) => (
                     <div key={assignee?.id} className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
                         <AvatarImage
@@ -360,19 +345,19 @@ export function TaskPage({ issueId }: TaskPageProps) {
           </Card>
 
           {/* Linked Branches */}
-          {hasLinkedBranches && (
+          {linkedBranches.length > 0 && (
             <Card>
               <CardHeader>
                 <h3 className="text-lg font-semibold">Связанные ветки</h3>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {issue.linkedBranches?.nodes?.map((linkedBranch) => (
+                  {linkedBranches.map((linkedBranch) => (
                     <div
                       key={linkedBranch?.id}
                       className="flex items-center gap-2"
                     >
-                      <GitBranchIcon className="h-4 w-4 text-muted-foreground" />
+                      <GitBranchIcon className="shrink-0 h-4 w-4 text-muted-foreground" />
                       <a
                         href={`https://github.com/${linkedBranch?.ref?.repository?.nameWithOwner}/tree/${linkedBranch?.ref?.name}`}
                         target="_blank"
@@ -389,14 +374,14 @@ export function TaskPage({ issueId }: TaskPageProps) {
           )}
 
           {/* Pull Requests */}
-          {hasPullRequests && (
+          {pullRequests.length > 0 && (
             <Card>
               <CardHeader>
                 <h3 className="text-lg font-semibold">Pull Requests</h3>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {issue.closedByPullRequestsReferences?.nodes?.map((pr) => (
+                  {pullRequests.map((pr) => (
                     <div key={pr?.id} className="flex items-center gap-2">
                       <GitPullRequestIcon className="h-4 w-4 text-muted-foreground" />
                       <a

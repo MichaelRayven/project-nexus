@@ -5,9 +5,9 @@ import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { CalendarIcon, PlusIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import Markdown from "react-markdown";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import rehypeKatex from "rehype-katex";
@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
+import remarkGfm from "remark-gfm";
 
 const formSchema = z.object({
   title: z
@@ -349,7 +350,7 @@ export function IssueForm({
                         <div className="border rounded min-h-48 max-h-96 h-0 sm:max-h-[50dvh] p-4 bg-muted/30 prose dark:prose-invert prose-sm resize-y overflow-y-auto">
                           <Markdown
                             rehypePlugins={[rehypeKatex]}
-                            remarkPlugins={[remarkMath]}
+                            remarkPlugins={[remarkGfm, remarkMath]}
                           >
                             {getPreviewBody(field.value)}
                           </Markdown>
