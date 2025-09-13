@@ -53,6 +53,11 @@ export function getIssueStatus(issue: GitHubIssue): {
   if (issue.state === "closed") {
     return { status: "Выполнена", color: "green" };
   }
+
+  if (issue.pull_request) {
+    return { status: "На проверке", color: "blue" };
+  }
+
   const deadlineLabel = issue.labels.find((label) =>
     label.name.toLowerCase().startsWith("дедлайн:")
   );

@@ -28,6 +28,13 @@ interface SubIssuesSummary {
   percent_completed: number;
 }
 
+interface PullRequest {
+  url: string;
+  html_url: string;
+  diff_url: string;
+  patch_url: string;
+}
+
 interface GitHubIssue {
   url: string;
   repository_url: string;
@@ -57,4 +64,5 @@ interface GitHubIssue {
   score: number;
   issue_dependencies_summary: IssueDependenciesSummary;
   sub_issues_summary: SubIssuesSummary;
+  pull_request: PullRequest | null;
 }
