@@ -81,7 +81,12 @@ export function ResourcesSelector({
     onSuccess: (_, { key, file }) => {
       toast.success("Файл загружен успешно");
       const fileUrl = `${process.env.NEXT_PUBLIC_S3_OBJECT}/${process.env.NEXT_PUBLIC_S3_FILE_BUCKET_NAME}/${key}`;
-      append({ name: file.name, url: fileUrl, type: "link" });
+      const isImage = file.type.startsWith("image/");
+      append({
+        name: file.name,
+        url: fileUrl,
+        type: isImage ? "image" : "link",
+      });
     },
     onError: (error: any) => {
       toast.error(`Ошибка загрузки: ${error.message}`);
