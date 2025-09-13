@@ -2,9 +2,9 @@ import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { baseOptions } from "@/lib/layout.shared";
 import { BookIcon, PlusIcon } from "lucide-react";
 import { LogInButton } from "@/components/login-button";
+import { UserDropdown } from "@/components/user-dropdown";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { IssueDialog } from "@/components/issue-dialog";
 import { Button } from "@/components/ui/button";
 import { LinkItemType } from "fumadocs-ui/layouts/links";
@@ -39,12 +39,7 @@ export default async function Layout({ children }: LayoutProps<"/">) {
       type: "custom",
       children: (
         <div className="flex gap-2">
-          <Avatar>
-            <AvatarImage src={session!.user.image ?? undefined} />
-            <AvatarFallback>
-              {session!.user.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <UserDropdown />
           <IssueDialog
             trigger={
               <Button>
