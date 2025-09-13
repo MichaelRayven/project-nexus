@@ -1,0 +1,19 @@
+overwrite: true
+schema: "./src/graphql/schema.graphql"
+documents: "./src/**/*.ts"
+generates:
+  ./src/lib/github-types.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      skipTypename: true
+      maybeValue: T | null | undefined
+      inputMaybeValue: T | null | undefined
+      scalars:
+        DateTime: string
+        Date: string
+        GitTimestamp: string
+        HTML: string
+        URI: string
+        X509Certificate: string

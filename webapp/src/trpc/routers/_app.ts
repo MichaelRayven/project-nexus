@@ -88,7 +88,7 @@ const baseRouter = createTRPCRouter({
         console.error("GitHub API response:", await response.text());
         throw new Error("Не удалось назначить себя исполнителем");
       }
-      return (await response.json()) as GitHubIssue;
+      return await response.json();
     }),
 });
 

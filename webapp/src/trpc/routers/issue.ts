@@ -1,4 +1,8 @@
 import { db } from "@/db";
+import { githubGraphQL } from "@/graphql/client";
+import { GetIssuesByLabel } from "@/graphql/queries";
+import { CreateLinkedBranch } from "@/graphql/mutations";
+import { GetIssuesByLabelQuery } from "@/graphql/types";
 import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
 import { addDays, format, parse } from "date-fns";
 import { z } from "zod";
@@ -7,6 +11,8 @@ import {
   collaboratorProcedure,
   createTRPCRouter,
 } from "../init";
+import { IssueNode } from "@/lib/interface";
+import { CreateLinkedBranchMutation } from "@/lib/github-types";
 
 export const issueRouter = createTRPCRouter({
   issueListDay: authedProcedure
@@ -15,7 +21,7 @@ export const issueRouter = createTRPCRouter({
         date: z.string(), // ISO string
       })
     )
-    .query(async (opts) => {
+    .query(async (opts): Promise<IssueNode[]> => {
       const { date } = opts.input;
 
       const deadlineDate = parse(
@@ -24,31 +30,28 @@ export const issueRouter = createTRPCRouter({
         new Date()
       );
 
-      const response = await fetch(
-        `https://api.github.com/search/issues?q=label:дедлайн:${format(
-          deadlineDate,
-          "MM-dd-yyyy"
-        )}+state:open+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${
-          process.env.GITHUB_REPOSITORY_NAME
-        }`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-            Accept: "application/vnd.github+json",
-          },
-        }
-      );
+      const deadlineLabel = `дедлайн:${format(deadlineDate, "MM-dd-yyyy")}`;
 
-      if (!response.ok) {
-        console.error("GitHub API response:", await response.text());
+      try {
+        const result = await githubGraphQL.request<GetIssuesByLabelQuery>(
+          GetIssuesByLabel,
+          {
+            owner: process.env.GITHUB_REPOSITORY_OWNER,
+            name: process.env.GITHUB_REPOSITORY_NAME,
+            labels: [deadlineLabel],
+            first: 100,
+            orderBy: { field: "CREATED_AT", direction: "DESC" },
+          }
+        );
+
+        const issues = result.repository?.issues.nodes || [];
+        return issues;
+      } catch (error) {
+        console.error("GraphQL error:", error);
         throw new Error("Не удалось получить задачи");
       }
-
-      const issues = await response.json();
-      return issues.items;
     }),
-  issueListWeek: authedProcedure.query(async () => {
+  issueListWeek: authedProcedure.query(async (): Promise<IssueNode[][]> => {
     const dates = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       const updatedDate = addDays(date, i);
@@ -57,18 +60,26 @@ export const issueRouter = createTRPCRouter({
 
     const results = await Promise.all(
       dates.map(async (date) => {
-        const res = await fetch(
-          `https://api.github.com/search/issues?q=label:дедлайн:${date}+is:issue+repo:${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-              Accept: "application/vnd.github+json",
-            },
-          }
-        );
-        const data = await res.json();
-        return data.items as GitHubIssue[];
+        const deadlineLabel = `дедлайн:${date}`;
+
+        try {
+          const result = await githubGraphQL.request<GetIssuesByLabelQuery>(
+            GetIssuesByLabel,
+            {
+              owner: process.env.GITHUB_REPOSITORY_OWNER,
+              name: process.env.GITHUB_REPOSITORY_NAME,
+              labels: [deadlineLabel],
+              first: 100,
+              orderBy: { field: "CREATED_AT", direction: "DESC" },
+            }
+          );
+
+          const issues = result.repository?.issues.nodes || [];
+          return issues;
+        } catch (error) {
+          console.error("GraphQL error for date", date, ":", error);
+          return []; // Return empty array for failed requests
+        }
       })
     );
 
@@ -93,7 +104,7 @@ export const issueRouter = createTRPCRouter({
         ),
       })
     )
-    .mutation(async (opts) => {
+    .mutation(async (opts): Promise<string> => {
       const { input } = opts;
 
       const subjectExists = await db.query.subject.findFirst({
@@ -143,6 +154,7 @@ export const issueRouter = createTRPCRouter({
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
             Accept: "application/vnd.github+json",
             "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
           },
           body: JSON.stringify({
             title: input.title,
@@ -165,4 +177,41 @@ export const issueRouter = createTRPCRouter({
 
       return "Задача успешно создана";
     }),
+  createLinkedBranch: collaboratorProcedure
+    .input(
+      z.object({
+        issueId: z.string(),
+        name: z.string(),
+      })
+    )
+    .mutation(
+      async (opts): Promise<{ success: boolean; linkedBranchId?: string }> => {
+        const { issueId, name } = opts.input;
+
+        try {
+          const result =
+            await githubGraphQL.request<CreateLinkedBranchMutation>(
+              CreateLinkedBranch,
+              {
+                input: {
+                  issueId: issueId,
+                  name: name,
+                },
+              }
+            );
+
+          if (result.createLinkedBranch?.linkedBranch?.id) {
+            return {
+              success: true,
+              linkedBranchId: result.createLinkedBranch.linkedBranch.id,
+            };
+          } else {
+            throw new Error("Не удалось создать связанную ветку");
+          }
+        } catch (error) {
+          console.error("GraphQL error:", error);
+          throw new Error("Не удалось создать связанную ветку для задачи");
+        }
+      }
+    ),
 });

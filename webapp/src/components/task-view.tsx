@@ -9,8 +9,9 @@ import { Button } from "./ui/button";
 import { CardTitle } from "./ui/card";
 import { authClient } from "@/lib/auth-client";
 import { UsersIcon, BookOpenIcon } from "lucide-react";
+import { IssueNode } from "@/lib/interface";
 
-export function TaskView({ issue }: { issue: GitHubIssue }) {
+export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
   const mutation = trpc.issueAssignSelf.useMutation();
   const utils = trpc.useUtils();
   const { data: session, isPending, error, refetch } = authClient.useSession();
@@ -26,22 +27,22 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
     );
   };
 
-  const labels = [...issue.labels];
+  const labels = [...(issue.labels?.nodes || [])];
   const teacherIdx = labels.findIndex((label) =>
-    label.name.includes("Преподаватель:")
+    label?.name?.includes("Преподаватель:")
   );
   const teacherLabel =
     teacherIdx !== -1 ? labels.splice(teacherIdx, 1)[0] : undefined;
   const subjectIdx = labels.findIndex((label) =>
-    label.name.includes("Предмет:")
+    label?.name?.includes("Предмет:")
   );
   const subjectLabel =
     subjectIdx !== -1 ? labels.splice(subjectIdx, 1)[0] : undefined;
 
   const status = getIssueStatus(issue);
 
-  const isAssignee = issue.assignees.some(
-    (assignee) => assignee.login === session?.user.username
+  const isAssignee = issue.assignees?.nodes?.some(
+    (assignee) => assignee?.login === session?.user.username
   );
 
   return (
@@ -58,24 +59,28 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
               variant="default"
               className={cn(
                 "text-xs",
-                status.color === "green"
+                status.status === "COMPLETED"
                   ? "bg-green-100 text-green-800"
-                  : status.color === "red"
+                  : status.status === "EXPIRED"
                   ? "bg-red-100 text-red-800"
-                  : status.color === "yellow"
+                  : status.status === "IN_PROGRESS"
                   ? "bg-yellow-100 text-yellow-800"
-                  : status.color === "blue"
+                  : status.status === "IN_REVIEW"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-gray-100 text-gray-800"
               )}
             >
-              {status.status}
+              {status.message}
             </Badge>
           </div>
         </div>
         <CardTitle className="text-lg">
           <Link
-            href={issue.html_url}
+            href={
+              status.status === "IN_REVIEW"
+                ? issue.closedByPullRequestsReferences!.nodes![0]!.url
+                : issue.url
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary transition-colors line-clamp-3"
@@ -89,14 +94,14 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
         {/* Labels */}
         <div className="flex flex-wrap gap-2 mb-4">
           {labels
-            .filter((label) => !label.name.toLowerCase().includes("дедлайн"))
+            .filter((label) => !label?.name?.toLowerCase().includes("дедлайн"))
             .map((label) => (
               <Badge
-                key={label.id}
+                key={label?.id}
                 className="text-xs"
-                style={{ backgroundColor: `#${label.color}` }}
+                style={{ backgroundColor: `#${label?.color}` }}
               >
-                {label.name.split(":")[1] || label.name}
+                {label?.name?.split(":")[1] || label?.name}
               </Badge>
             ))}
         </div>
@@ -123,24 +128,24 @@ export function TaskView({ issue }: { issue: GitHubIssue }) {
           <div className="flex items-center gap-2 text-sm">
             <UsersIcon className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Исполнители:</span>
-            {issue.assignees.length > 0 ? (
+            {issue.assignees?.nodes?.length ? (
               <div className="flex -space-x-2">
-                {issue.assignees.map((assignee) => (
+                {issue.assignees?.nodes?.map((assignee) => (
                   <Link
-                    key={assignee.id}
-                    href={assignee.html_url || "#"}
+                    key={assignee?.id}
+                    href={assignee?.url || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title={assignee.login}
+                    title={assignee?.login}
                     className="flex items-center gap-1"
                   >
                     <Avatar className="h-6 w-6 border-2 border-background">
                       <AvatarImage
-                        src={assignee.avatar_url || ""}
-                        alt={assignee.login}
+                        src={assignee?.avatarUrl || ""}
+                        alt={assignee?.login}
                       />
                       <AvatarFallback className="text-xs">
-                        {assignee.login.slice(0, 2).toUpperCase()}
+                        {assignee?.login.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
