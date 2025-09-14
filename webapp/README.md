@@ -6,6 +6,9 @@ This is a Next.js application generated with
 Run development server:
 
 ```bash
+docker compose up -d
+nnpm drizzle-kit push
+
 npm run dev
 # or
 pnpm dev
@@ -22,13 +25,6 @@ pnpm drizzle-kit generate
 pnpm drizzle-kit migrate
 # database editor in web-interface
 pnpm drizzle-kit studio
-```
-
-Local development:
-```bash
-docker compose up -d
-nnpm drizzle-kit push
-pnpm run dev
 ```
 
 Open http://localhost:3000 with your browser to see the result.
@@ -52,12 +48,3 @@ A `source.config.ts` config file has been included, you can customise different 
 
 Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
 
-## Learn More
-
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.vercel.app) - learn about Fumadocs
