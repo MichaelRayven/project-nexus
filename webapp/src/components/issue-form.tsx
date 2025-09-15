@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TIMEZONE } from "@/lib/utils";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
@@ -41,6 +40,8 @@ import {
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import remarkGfm from "remark-gfm";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 const formSchema = z.object({
   title: z
@@ -98,20 +99,26 @@ export function IssueForm({
 
   const resources = form.watch("resources");
 
-  const { data: subjects } = trpc.subjectList.useQuery();
-  const { data: teachers } = trpc.teacherList.useQuery();
-  const utils = trpc.useUtils();
-  const mutation = trpc.issueAdd.useMutation({
-    onError: (error) => {
-      toast.error(error.message);
-    },
-    onSuccess: () => {
-      form.reset();
-      toast.success("Задача добавлена");
-      utils.issueListWeek.invalidate();
-      onIssueAdded();
-    },
-  });
+  const trpc = useTRPC();
+  const { data: subjects } = useQuery(trpc.subjectList.queryOptions());
+  const { data: teachers } = useQuery(trpc.teacherList.queryOptions());
+  const queryClient = useQueryClient();
+  const invalidateIssueListWeek = () => {
+    queryClient.invalidateQueries({ queryKey: trpc.issueListWeek.queryKey() });
+  };
+  const mutation = useMutation(
+    trpc.issueAdd.mutationOptions({
+      onError: (error) => {
+        toast.error(error.message);
+      },
+      onSuccess: () => {
+        form.reset();
+        toast.success("Задача добавлена");
+        invalidateIssueListWeek();
+        onIssueAdded();
+      },
+    })
+  );
 
   function handleNext() {
     form

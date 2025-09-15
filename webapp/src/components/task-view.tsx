@@ -12,7 +12,7 @@ import { useIssue } from "@/hooks/use-issue";
 export function TaskView({ issue }: { issue: NonNullable<IssueNode> }) {
   const { teacherLabel, subjectLabel, categoryLabel, durationLabel, status } =
     useIssue({
-      issueId: issue.number,
+      issue,
     });
 
   return (

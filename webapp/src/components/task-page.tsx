@@ -31,6 +31,8 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Separator } from "./ui/separator";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface TaskPageProps {
   issueId: number;
@@ -38,9 +40,13 @@ interface TaskPageProps {
 
 export function TaskPage({ issueId }: TaskPageProps) {
   const router = useRouter();
+
+  const trpc = useTRPC();
+  const { data: issue, isLoading } = useQuery(
+    trpc.getById.queryOptions({ issueId })
+  );
+
   const {
-    issue,
-    isLoading,
     linkedBranches,
     pullRequests,
     assignees,
@@ -52,7 +58,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
     deadlineLabel,
     durationLabel,
     categoryLabel,
-  } = useIssue({ issueId });
+  } = useIssue({ issue });
 
   const {
     handleAssignSelf,

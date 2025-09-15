@@ -1,19 +1,19 @@
 import { CollaborationSection } from "@/components/collaboration-section";
 import { Footer } from "@/components/footer";
 import { HeroSection } from "@/components/hero-section";
-import { IssueForm } from "@/components/issue-form";
 import { TasksSection } from "@/components/tasks-section";
 import { WorkflowSection } from "@/components/workflow-section";
 import { auth } from "@/lib/auth";
-import { trpc } from "@/trpc/server";
+import { caller, getQueryClient } from "@/trpc/server";
 import { headers } from "next/headers";
 
 export default async function HomePage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  const collaborators = await trpc.collaboratorsList();
-  const isCollaborator = collaborators.some(
+  const queryClient = getQueryClient();
+  const collaborators = await caller.collaboratorsList();
+  const isCollaborator = collaborators?.some(
     (collaborator: any) => collaborator.login === session?.user.username
   );
 

@@ -1,4 +1,5 @@
-import { trpc } from "@/trpc/client";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface UseIssueActionsProps {
@@ -10,30 +11,43 @@ export function useIssueActions({
   issueId,
   issueNumber,
 }: UseIssueActionsProps) {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   // Mutations
-  const assignSelfMutation = trpc.issueAssignSelf.useMutation({
-    onSuccess: () => {
-      toast.success("Вы назначены исполнителем");
-      utils.getById.invalidate({ issueId: issueNumber });
-      utils.issueListWeek.invalidate(); // Also invalidate weekly data
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const assignSelfMutation = useMutation(
+    trpc.issueAssignSelf.mutationOptions({
+      onSuccess: () => {
+        toast.success("Вы назначены исполнителем");
+        queryClient.invalidateQueries({
+          queryKey: [
+            trpc.issueListWeek.queryKey(),
+            trpc.getById.queryFilter({ issueId: issueNumber }),
+          ],
+        }); // Also invalidate weekly data
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    })
+  );
 
-  const unassignSelfMutation = trpc.issueUnassignSelf.useMutation({
-    onSuccess: () => {
-      toast.success("Назначение снято");
-      utils.getById.invalidate({ issueId: issueNumber });
-      utils.issueListWeek.invalidate(); // Also invalidate weekly data
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const unassignSelfMutation = useMutation(
+    trpc.issueUnassignSelf.mutationOptions({
+      onSuccess: () => {
+        toast.success("Назначение снято");
+        queryClient.invalidateQueries({
+          queryKey: [
+            trpc.issueListWeek.queryKey(),
+            trpc.getById.queryFilter({ issueId: issueNumber }),
+          ],
+        });
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    })
+  );
 
   // Action handlers
   const handleAssignSelf = () => {

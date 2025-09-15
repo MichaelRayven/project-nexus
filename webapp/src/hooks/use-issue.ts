@@ -1,16 +1,9 @@
-import { trpc } from "@/trpc/client";
 import { authClient } from "@/lib/auth-client";
+import { IssueNode } from "@/lib/interface";
 import { getIssueStatus } from "@/lib/utils";
 
-interface UseIssueProps {
-  issueId: number;
-}
-
-export function useIssue({ issueId }: UseIssueProps) {
+export function useIssue({ issue }: { issue: IssueNode }) {
   const { data: session } = authClient.useSession();
-
-  // Fetch issue data
-  const { data: issue, isLoading } = trpc.getById.useQuery({ issueId });
 
   // Helper functions
   const linkedBranches =
@@ -64,10 +57,6 @@ export function useIssue({ issueId }: UseIssueProps) {
     categoryIdx !== -1 ? labels.splice(categoryIdx, 1)[0] : undefined;
 
   return {
-    // Data
-    issue,
-    isLoading,
-
     // Computed values
     linkedBranches,
     pullRequests,

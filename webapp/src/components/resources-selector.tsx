@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
+import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import {
   ImageIcon,
@@ -55,7 +55,8 @@ export function ResourcesSelector({
     name: "resources",
   });
 
-  const uploadUrlMutation = trpc.getUploadUrl.useMutation();
+  const trpc = useTRPC();
+  const uploadUrlMutation = useMutation(trpc.getUploadUrl.mutationOptions());
 
   const uploadMutation = useMutation({
     mutationFn: async ({

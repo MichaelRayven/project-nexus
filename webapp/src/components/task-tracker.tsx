@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { trpc } from "@/trpc/client";
 import { addDays } from "date-fns";
 import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
@@ -10,9 +9,12 @@ import { TaskView } from "./task-view";
 import { IssueDialog } from "./issue-dialog";
 import { Button } from "./ui/button";
 import { PlusIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 export function TaskTracker() {
-  const { data } = trpc.issueListWeek.useQuery();
+  const trpc = useTRPC();
+  const { data } = useQuery(trpc.issueListWeek.queryOptions());
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = toZonedTime(new Date(), TIMEZONE);

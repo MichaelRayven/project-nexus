@@ -24,9 +24,10 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
-import { trpc } from "@/trpc/client";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import { toast } from "sonner";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -43,7 +44,13 @@ const formSchema = z.object({
   }),
 });
 
-export function AddTeacherDialog({ trigger, onTeacherAdded = () => {} }: { trigger?: ReactNode, onTeacherAdded?: () => void }) {
+export function AddTeacherDialog({
+  trigger,
+  onTeacherAdded = () => {},
+}: {
+  trigger?: ReactNode;
+  onTeacherAdded?: () => void;
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,18 +61,24 @@ export function AddTeacherDialog({ trigger, onTeacherAdded = () => {} }: { trigg
     },
   });
 
-  const utils = trpc.useUtils();
-  const mutation = trpc.teacherAdd.useMutation({
-    onSuccess: () => {
-      form.reset();
-      toast.success("Преподаватель добавлен");
-      utils.teacherList.invalidate();
-      onTeacherAdded();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    }
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const invalidateTeacherList = () => {
+    queryClient.invalidateQueries({ queryKey: trpc.teacherList.queryKey() });
+  };
+  const mutation = useMutation(
+    trpc.teacherAdd.mutationOptions({
+      onSuccess: () => {
+        form.reset();
+        toast.success("Преподаватель добавлен");
+        invalidateTeacherList();
+        onTeacherAdded();
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    })
+  );
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
@@ -82,10 +95,7 @@ export function AddTeacherDialog({ trigger, onTeacherAdded = () => {} }: { trigg
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="surname"
