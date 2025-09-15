@@ -2,7 +2,9 @@
 
 import { useIssue } from "@/hooks/use-issue";
 import { useIssueActions } from "@/hooks/use-issue-actions";
-import { cn } from "@/lib/utils";
+import { cn, TIMEZONE } from "@/lib/utils";
+import { formatInTimeZone } from "date-fns-tz";
+import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -291,7 +293,12 @@ export function TaskPage({ issueId }: TaskPageProps) {
                     Создано
                   </div>
                   <div>
-                    {new Date(issue.createdAt).toLocaleDateString("ru-RU")}
+                    {formatInTimeZone(
+                      new Date(issue.createdAt),
+                      TIMEZONE,
+                      "P",
+                      { locale: ru }
+                    )}
                   </div>
                 </div>
               </div>
@@ -303,7 +310,12 @@ export function TaskPage({ issueId }: TaskPageProps) {
                       Обновлено
                     </div>
                     <div>
-                      {new Date(issue.updatedAt).toLocaleDateString("ru-RU")}
+                      {formatInTimeZone(
+                        new Date(issue.updatedAt),
+                        TIMEZONE,
+                        "P",
+                        { locale: ru }
+                      )}
                     </div>
                   </div>
                 </div>

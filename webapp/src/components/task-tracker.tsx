@@ -2,8 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/trpc/client";
-import { addDays, format } from "date-fns";
+import { addDays } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
+import { TIMEZONE } from "@/lib/utils";
 import { TaskView } from "./task-view";
 import { IssueDialog } from "./issue-dialog";
 import { Button } from "./ui/button";
@@ -13,13 +15,15 @@ export function TaskTracker() {
   const { data } = trpc.issueListWeek.useQuery();
 
   const days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
+    const date = toZonedTime(new Date(), TIMEZONE);
     const updatedDate = addDays(date, i);
 
     return {
       date: updatedDate,
-      formattedDate: format(updatedDate, "P", { locale: ru }),
-      weekday: format(updatedDate, "EEEE", { locale: ru }),
+      formattedDate: formatInTimeZone(updatedDate, TIMEZONE, "P", {
+        locale: ru,
+      }),
+      weekday: formatInTimeZone(updatedDate, TIMEZONE, "EEEE", { locale: ru }),
       tasks: data?.[i] || [],
     };
   });

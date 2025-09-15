@@ -1,7 +1,11 @@
 import { clsx, type ClassValue } from "clsx";
 import { parse } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 import { IssueNode } from "./interface";
+
+// Novosibirsk timezone constant
+export const TIMEZONE = "Asia/Novosibirsk";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -64,8 +68,16 @@ export function getIssueStatus(issue: IssueNode): {
   );
   if (deadlineLabel) {
     const deadlineStr = deadlineLabel?.name?.split(":")[1].trim();
-    const deadlineDate = parse(deadlineStr, "MM-dd-yyyy", new Date());
-    if (new Date() > deadlineDate) {
+    const parsed = parse(
+      deadlineStr,
+      "MM-dd-yyyy",
+      toZonedTime(new Date(), TIMEZONE)
+    );
+    const deadlineDate = fromZonedTime(parsed, TIMEZONE);
+
+    const now = toZonedTime(new Date(), TIMEZONE);
+    const targetDate = toZonedTime(deadlineDate, TIMEZONE);
+    if (now > targetDate) {
       return { message: "Просрочена", status: "EXPIRED" };
     }
   }
