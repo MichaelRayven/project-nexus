@@ -12,7 +12,7 @@ export default async function TaskPageRoute({ params }: TaskPageProps) {
     notFound();
   }
 
-  return <TaskPage issueId={Number(id)} />;
+  return <TaskPage issueNumber={Number(id)} />;
 }
 
 export async function generateMetadata({ params }: TaskPageProps) {

@@ -33,7 +33,7 @@ const baseRouter = createTRPCRouter({
   issueAssignSelf: baseProcedure
     .input(
       z.object({
-        issueId: z.number(),
+        issueNumber: z.number(),
       })
     )
     .mutation(async (opts) => {
@@ -49,7 +49,7 @@ const baseRouter = createTRPCRouter({
       }
 
       const response = await fetch(
-        `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues/${input.issueId}/assignees`,
+        `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues/${input.issueNumber}/assignees`,
         {
           method: "POST",
           headers: {
@@ -69,7 +69,7 @@ const baseRouter = createTRPCRouter({
   issueUnassignSelf: baseProcedure
     .input(
       z.object({
-        issueId: z.number(),
+        issueNumber: z.number(),
       })
     )
     .mutation(async (opts) => {
@@ -85,7 +85,7 @@ const baseRouter = createTRPCRouter({
       }
 
       const response = await fetch(
-        `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues/${input.issueId}/assignees`,
+        `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY_OWNER}/${process.env.GITHUB_REPOSITORY_NAME}/issues/${input.issueNumber}/assignees`,
         {
           method: "DELETE",
           headers: {

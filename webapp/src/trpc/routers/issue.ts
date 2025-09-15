@@ -21,14 +21,14 @@ import { IssueNode } from "@/lib/interface";
 import { CreateLinkedBranchMutation } from "@/lib/github-types";
 
 export const issueRouter = createTRPCRouter({
-  getById: authedProcedure
+  issueByNumber: authedProcedure
     .input(
       z.object({
-        issueId: z.number(),
+        issueNumber: z.number(),
       })
     )
     .query(async (opts): Promise<IssueNode | null> => {
-      const { issueId } = opts.input;
+      const { issueNumber } = opts.input;
 
       try {
         const result = await githubGraphQL.request<{
@@ -36,7 +36,7 @@ export const issueRouter = createTRPCRouter({
         }>(GetIssueByNumber, {
           owner: process.env.GITHUB_REPOSITORY_OWNER,
           name: process.env.GITHUB_REPOSITORY_NAME,
-          number: issueId,
+          number: issueNumber,
         });
 
         return result.repository?.issue || null;
