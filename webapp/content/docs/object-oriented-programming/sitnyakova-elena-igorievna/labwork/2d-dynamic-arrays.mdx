@@ -1,0 +1,487 @@
+---
+title: Лабораторная работа №2. Двумерные динамические массивы
+description: Работа с двумерными динамическими массивами, различные способы обхода элементов.
+---
+
+[Требования к заданию](https://nexus.michaelrayven.ru/task/20)  
+[ЛК1 Указатели](https://drive.google.com/file/d/1_BfpNYXz4RttU1GRQmiqGsQT60b9kGr0/view?usp=sharing)
+
+## Теоретическая основа
+
+### Двумерные динамические массивы
+
+**Двумерный динамический массив** — это массив указателей, каждый из которых указывает на одномерный массив. Это позволяет создавать матрицы с переменным количеством элементов в строках.
+
+**Основные принципы:**
+- Сначала выделяется память для массива указателей (строки)
+- Затем для каждой строки выделяется память под элементы
+- Освобождение памяти происходит в обратном порядке
+
+## Задание 1. Квадратная матрица NxN с различными обходами
+
+### Требования
+Создать динамический двумерный массив размером NxN элементов. Заполнить случайными целыми числами. Создать одномерный массив D. Переписать элементы матрицы в массив D в следующем порядке:
+
+    a) по правым диагоналям, начиная с правого верхнего элемента
+    b) по левым диагоналям, начиная с левого верхнего элемента
+    c) по спирали, начиная с центрального элемента
+    d) по спирали, начиная с левого верхнего элемента
+
+### Реализация
+
+```cpp
+#include <cstdlib>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+
+using namespace std;
+
+int **createMatrix(int n) {
+  int **matrix = new int *[n];
+  for (int i = 0; i < n; i++) {
+    matrix[i] = new int[n];
+  }
+  return matrix;
+}
+
+void fillMatrix(int **matrix, int n) {
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      matrix[i][j] = rand() % 99 + 1;
+    }
+  }
+}
+
+void printMatrix(int **matrix, int n) {
+  cout << "Матрица " << n << "x" << n << ":" << endl;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      cout << setw(3) << matrix[i][j] << " ";
+    }
+    cout << endl;
+  }
+  cout << endl;
+}
+
+void printArray(int *arr, int size, const string &title) {
+  cout << title << ": ";
+  for (int i = 0; i < size; i++) {
+    cout << arr[i];
+    if (i < size - 1)
+      cout << " ";
+  }
+  cout << endl << endl;
+}
+
+// a) Правые диагонали (начиная с правого верхнего угла)
+void rightDiagonals(int **matrix, int n, int *result) {
+  int index = 0;
+
+  for (int count = 0; count < n; count++) {
+    for (int i = count; i < n; i++) {
+      int j = n - 1 - i + count;
+      result[index++] = matrix[i][j];
+    }
+  }
+}
+
+// b) Левые диагонали
+void leftDiagonals(int **matrix, int n, int *result) {
+  int index = 0;
+
+  for (int count = 0; count < n; count++) {
+    for (int i = 0; i < n - count; i++) {
+      int j = count + i;
+      result[index++] = matrix[i][j];
+    }
+  }
+}
+
+// c) Спираль от центра
+void spiralFromCenter(int **matrix, int n, int *result) {
+  int index = 0;
+
+  int directions[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+  int direction = 0;
+
+  int x = n / 2 - (n + 1) % 2, y = n / 2 - (n + 1) % 2;
+  int step = 1;
+
+  while (index < n * n) {
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < step; j++) {
+        if (x >= n || y >= n || x < 0 || y < 0)
+          break;
+
+        result[index++] = matrix[x][y];
+        x += directions[direction][0];
+        y += directions[direction][1];
+      }
+      direction = (direction + 1) % 4;
+    }
+    step++;
+  }
+}
+
+// d) Спираль от левого верхнего угла
+void spiralFromTopLeft(int **matrix, int n, int *result) {
+  int index = 0;
+
+  int top = 0, bottom = n - 1;
+  int left = 0, right = n - 1;
+
+  while (top <= bottom && left <= right) {
+    // Move RIGHT along top row
+    for (int j = left; j <= right; j++) {
+      result[index++] = matrix[top][j];
+    }
+    top++;
+
+    // Move DOWN along right column
+    for (int i = top; i <= bottom; i++) {
+      result[index++] = matrix[i][right];
+    }
+    right--;
+
+    // Move LEFT along bottom row
+    if (top <= bottom && left <= right) {
+      for (int j = right; j >= left; j--) {
+        result[index++] = matrix[bottom][j];
+      }
+      bottom--;
+    }
+
+    // Move UP along left column
+    if (left <= right && top <= bottom) {
+      for (int i = bottom; i >= top; i--) {
+        result[index++] = matrix[i][left];
+      }
+      left++;
+    }
+  }
+}
+
+void deleteMatrix(int **matrix, int n) {
+  for (int i = 0; i < n; i++)
+    delete[] matrix[i];
+  delete[] matrix;
+}
+```
+
+## Задание 2. Матрица с произвольным количеством элементов в строках
+
+### Требования
+Создать двумерный динамический массив с произвольным количеством элементов в каждой строке. Заполнить его и распечатать построчно.
+
+### Реализация
+
+```cpp
+// Функция генерации случайного массива
+int *genRandArray(int size, int maxValue) {
+  int *arr = new int[size + 1];
+  if (!arr) {
+    cout << "Ошибка выделения памяти" << endl;
+    return nullptr;
+  }
+
+  arr[0] = size;
+  for (int i = 1; i <= size; i++) {
+    arr[i] = rand() % maxValue + 1;
+  }
+
+  return arr;
+}
+
+// Функция генерации двумерного массива
+int **genRandMatrix(int size, int maxValue) {
+  // Выделяем память для массива указателей
+  int **matrix = new int *[size];
+  if (!matrix) {
+    cout << "Ошибка выделения памяти для матрицы" << endl;
+    return nullptr;
+  }
+
+  // Создаем каждую строку с произвольным размером
+  for (int i = 0; i < size; i++) {
+    int rowSize = rand() % 8 + 2; // Размер строки от 2 до 9
+    matrix[i] = genRandArray(rowSize, maxValue);
+
+    if (!matrix[i]) {
+      // Если не удалось выделить память для строки, очищаем уже выделенные
+      for (int j = 0; j < i; j++) {
+        delete[] matrix[j];
+      }
+      delete[] matrix;
+      return nullptr;
+    }
+  }
+
+  return matrix;
+}
+
+void printJaggedMatrix(int **matrix, int n) {
+  cout << "Матрица:" << endl;
+  for (int i = 0; i < n; i++) {
+    for (int j = 1; j <= matrix[i][0]; j++) {
+      cout << setw(3) << matrix[i][j] << " ";
+    }
+    cout << endl;
+  }
+  cout << endl;
+}
+```
+
+## Полный код программы
+
+```cpp
+#include <cstdlib>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+
+using namespace std;
+
+// Функция генерации случайного массива
+int *genRandArray(int size, int maxValue) {
+  int *arr = new int[size + 1];
+  if (!arr) {
+    cout << "Ошибка выделения памяти" << endl;
+    return nullptr;
+  }
+
+  arr[0] = size;
+  for (int i = 1; i <= size; i++) {
+    arr[i] = rand() % maxValue + 1;
+  }
+
+  return arr;
+}
+
+// Функция генерации двумерного массива
+int **genRandMatrix(int size, int maxValue) {
+  // Выделяем память для массива указателей
+  int **matrix = new int *[size];
+  if (!matrix) {
+    cout << "Ошибка выделения памяти для матрицы" << endl;
+    return nullptr;
+  }
+
+  // Создаем каждую строку с произвольным размером
+  for (int i = 0; i < size; i++) {
+    int rowSize = rand() % 8 + 2; // Размер строки от 2 до 9
+    matrix[i] = genRandArray(rowSize, maxValue);
+
+    if (!matrix[i]) {
+      // Если не удалось выделить память для строки, очищаем уже выделенные
+      for (int j = 0; j < i; j++) {
+        delete[] matrix[j];
+      }
+      delete[] matrix;
+      return nullptr;
+    }
+  }
+
+  return matrix;
+}
+
+int **createMatrix(int n) {
+  int **matrix = new int *[n];
+  for (int i = 0; i < n; i++) {
+    matrix[i] = new int[n];
+  }
+  return matrix;
+}
+
+void fillMatrix(int **matrix, int n) {
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      matrix[i][j] = rand() % 99 + 1;
+    }
+  }
+}
+
+void printMatrix(int **matrix, int n) {
+  cout << "Матрица " << n << "x" << n << ":" << endl;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      cout << setw(3) << matrix[i][j] << " ";
+    }
+    cout << endl;
+  }
+  cout << endl;
+}
+
+void printJaggedMatrix(int **matrix, int n) {
+  cout << "Матрица:" << endl;
+  for (int i = 0; i < n; i++) {
+    for (int j = 1; j <= matrix[i][0]; j++) {
+      cout << setw(3) << matrix[i][j] << " ";
+    }
+    cout << endl;
+  }
+  cout << endl;
+}
+
+void printArray(int *arr, int size, const string &title) {
+  cout << title << ": ";
+  for (int i = 0; i < size; i++) {
+    cout << arr[i];
+    if (i < size - 1)
+      cout << " ";
+  }
+  cout << endl << endl;
+}
+
+// a) Правые диагонали (начиная с правого верхнего угла)
+void rightDiagonals(int **matrix, int n, int *result) {
+  int index = 0;
+
+  for (int count = 0; count < n; count++) {
+    for (int i = count; i < n; i++) {
+      int j = n - 1 - i + count;
+      result[index++] = matrix[i][j];
+    }
+  }
+}
+
+// b) Левые диагонали
+void leftDiagonals(int **matrix, int n, int *result) {
+  int index = 0;
+
+  for (int count = 0; count < n; count++) {
+    for (int i = 0; i < n - count; i++) {
+      int j = count + i;
+      result[index++] = matrix[i][j];
+    }
+  }
+}
+
+// c) Спираль от центра
+void spiralFromCenter(int **matrix, int n, int *result) {
+  int index = 0;
+
+  int directions[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+  int direction = 0;
+
+  int x = n / 2 - (n + 1) % 2, y = n / 2 - (n + 1) % 2;
+  int step = 1;
+
+  while (index < n * n) {
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < step; j++) {
+        if (x >= n || y >= n || x < 0 || y < 0)
+          break;
+
+        result[index++] = matrix[x][y];
+        x += directions[direction][0];
+        y += directions[direction][1];
+      }
+      direction = (direction + 1) % 4;
+    }
+    step++;
+  }
+}
+
+// d) Спираль от левого верхнего угла
+void spiralFromTopLeft(int **matrix, int n, int *result) {
+  int index = 0;
+
+  int top = 0, bottom = n - 1;
+  int left = 0, right = n - 1;
+
+  while (top <= bottom && left <= right) {
+    // Move RIGHT along top row
+    for (int j = left; j <= right; j++) {
+      result[index++] = matrix[top][j];
+    }
+    top++;
+
+    // Move DOWN along right column
+    for (int i = top; i <= bottom; i++) {
+      result[index++] = matrix[i][right];
+    }
+    right--;
+
+    // Move LEFT along bottom row
+    if (top <= bottom && left <= right) {
+      for (int j = right; j >= left; j--) {
+        result[index++] = matrix[bottom][j];
+      }
+      bottom--;
+    }
+
+    // Move UP along left column
+    if (left <= right && top <= bottom) {
+      for (int i = bottom; i >= top; i--) {
+        result[index++] = matrix[i][left];
+      }
+      left++;
+    }
+  }
+}
+
+void deleteMatrix(int **matrix, int n) {
+  for (int i = 0; i < n; i++)
+    delete[] matrix[i];
+  delete[] matrix;
+}
+
+int main() {
+  srand(time(0));
+
+  cout << "=== Обходы матрицы ===" << endl;
+
+  int n;
+  cout << "Введите размер матрицы N: ";
+  cin >> n;
+
+  int **matrix = createMatrix(n);
+  fillMatrix(matrix, n);
+  printMatrix(matrix, n);
+
+  int size = n * n;
+  int *result = new int[size];
+
+  rightDiagonals(matrix, n, result);
+  printArray(result, size, "a) Правые диагонали");
+
+  leftDiagonals(matrix, n, result);
+  printArray(result, size, "b) Левые диагонали");
+
+  spiralFromCenter(matrix, n, result);
+  printArray(result, size, "c) Спираль от центра");
+
+  spiralFromTopLeft(matrix, n, result);
+  printArray(result, size, "d) Спираль от левого верхнего угла");
+
+  delete[] result;
+  deleteMatrix(matrix, n);
+
+  cout << "\n=== Двумерный массив, строки произвольной длины ===" << endl;
+
+  int rows;
+  cout << "Введите количество строк: ";
+  cin >> rows;
+
+  matrix = genRandMatrix(rows, 100);
+  printJaggedMatrix(matrix, rows);
+  deleteMatrix(matrix, rows);
+
+  return 0;
+}
+```
+
+## Объяснение алгоритмов
+
+### Правые диагонали
+Обход осуществляется по диагоналям, начиная с элементов в правой части матрицы. Алгоритм использует формулу `j = n - 1 - i + count` для вычисления позиции столбца, обеспечивая движение по диагоналям справа налево и сверху вниз.
+
+### Левые диагонали  
+Обход по диагоналям, начиная с левого верхнего угла. Использует формулу `j = count + i` для движения по диагоналям слева направо и сверху вниз.
+
+### Спираль от центра
+Алгоритм начинает с центрального элемента (вычисленного как `n/2 - (n+1)%2`) и движется по спирали наружу. Использует массив направлений `{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}` (вправо, вниз, влево, вверх) и увеличивает количество шагов после каждых двух поворотов.
+
+### Спираль от левого верхнего угла
+Классический алгоритм обхода по спирали с использованием четырех границ (top, bottom, left, right). Движется по периметру: вправо → вниз → влево → вверх, постепенно сужая границы после каждого прохода.
