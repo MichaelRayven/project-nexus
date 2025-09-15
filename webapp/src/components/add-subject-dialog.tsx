@@ -25,9 +25,10 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
-import { trpc } from "@/trpc/client";
+import { useTRPC } from "@/trpc/client";
 import { TwoSeventyRingWithBg as Spinner } from "react-svg-spinners";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   name: z
@@ -62,18 +63,24 @@ export function AddSubjectDialog({
     },
   });
 
-  const utils = trpc.useUtils();
-  const mutation = trpc.subjectAdd.useMutation({
-    onSuccess: () => {
-      form.reset();
-      toast.success("Предмет добавлен");
-      utils.subjectList.invalidate();
-      onSubjectAdded();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const invalidateSubjectList = () => {
+    queryClient.invalidateQueries({ queryKey: trpc.subjectList.queryKey() });
+  };
+  const mutation = useMutation(
+    trpc.subjectAdd.mutationOptions({
+      onSuccess: () => {
+        form.reset();
+        toast.success("Предмет добавлен");
+        invalidateSubjectList();
+        onSubjectAdded();
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    })
+  );
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);

@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/dist/server/request/headers";
 import { TaskTracker } from "./task-tracker";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient, trpc } from "@/trpc/server";
 
 export async function TasksSection() {
   // Generate dates for the 7-day sliding window (today + next 6 days)
@@ -10,6 +12,9 @@ export async function TasksSection() {
 
   // Skip rendering if user is not authenticated
   if (!session) return null;
+
+  const queryClient = getQueryClient();
+  void queryClient.prefetchQuery(trpc.issueListWeek.queryOptions());
 
   return (
     <section id="features" className="py-24 bg-muted/30">
@@ -24,7 +29,9 @@ export async function TasksSection() {
           </p>
         </div>
 
-        <TaskTracker />
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <TaskTracker />
+        </HydrationBoundary>
       </div>
     </section>
   );

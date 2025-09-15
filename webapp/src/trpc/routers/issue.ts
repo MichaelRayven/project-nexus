@@ -3,8 +3,14 @@ import { githubGraphQL } from "@/graphql/client";
 import { GetIssuesByLabel, GetIssueByNumber } from "@/graphql/queries";
 import { CreateLinkedBranch } from "@/graphql/mutations";
 import { GetIssuesByLabelQuery } from "@/graphql/types";
-import { formatCategory, formatDuration, getFullName } from "@/lib/utils";
-import { addDays, format, parse } from "date-fns";
+import {
+  formatCategory,
+  formatDuration,
+  getFullName,
+  TIMEZONE,
+} from "@/lib/utils";
+import { addDays, parse } from "date-fns";
+import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { z } from "zod";
 import {
   authedProcedure,
@@ -15,14 +21,14 @@ import { IssueNode } from "@/lib/interface";
 import { CreateLinkedBranchMutation } from "@/lib/github-types";
 
 export const issueRouter = createTRPCRouter({
-  getById: authedProcedure
+  issueByNumber: authedProcedure
     .input(
       z.object({
-        issueId: z.number(),
+        issueNumber: z.number(),
       })
     )
     .query(async (opts): Promise<IssueNode | null> => {
-      const { issueId } = opts.input;
+      const { issueNumber } = opts.input;
 
       try {
         const result = await githubGraphQL.request<{
@@ -30,7 +36,7 @@ export const issueRouter = createTRPCRouter({
         }>(GetIssueByNumber, {
           owner: process.env.GITHUB_REPOSITORY_OWNER,
           name: process.env.GITHUB_REPOSITORY_NAME,
-          number: issueId,
+          number: issueNumber,
         });
 
         return result.repository?.issue || null;
@@ -48,13 +54,17 @@ export const issueRouter = createTRPCRouter({
     .query(async (opts): Promise<IssueNode[]> => {
       const { date } = opts.input;
 
-      const deadlineDate = parse(
+      const parsed = parse(
         date,
         "yyyy-MM-dd'T'HH:mm:ss.SSSX",
-        new Date()
+        toZonedTime(new Date(), TIMEZONE)
       );
-
-      const deadlineLabel = `дедлайн:${format(deadlineDate, "MM-dd-yyyy")}`;
+      const deadlineDate = fromZonedTime(parsed, TIMEZONE);
+      const deadlineLabel = `дедлайн:${formatInTimeZone(
+        deadlineDate,
+        TIMEZONE,
+        "MM-dd-yyyy"
+      )}`;
 
       try {
         const result = await githubGraphQL.request<GetIssuesByLabelQuery>(
@@ -77,9 +87,9 @@ export const issueRouter = createTRPCRouter({
     }),
   issueListWeek: authedProcedure.query(async (): Promise<IssueNode[][]> => {
     const dates = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
+      const date = toZonedTime(new Date(), TIMEZONE);
       const updatedDate = addDays(date, i);
-      return format(updatedDate, "MM-dd-yyyy");
+      return formatInTimeZone(updatedDate, TIMEZONE, "MM-dd-yyyy");
     });
 
     const results = await Promise.all(
@@ -148,10 +158,17 @@ export const issueRouter = createTRPCRouter({
         throw new Error("Указанный преподаватель не существует");
       }
 
-      const deadlineDate = parse(input.deadline, "MM-dd-yyyy", new Date());
+      const parsed = parse(
+        input.deadline,
+        "MM-dd-yyyy",
+        toZonedTime(new Date(), TIMEZONE)
+      );
+      const deadlineDate = fromZonedTime(parsed, TIMEZONE);
 
       // Check only the day
-      if (deadlineDate < new Date()) {
+      const now = toZonedTime(new Date(), TIMEZONE);
+      const targetDate = toZonedTime(deadlineDate, TIMEZONE);
+      if (now > targetDate) {
         throw new Error("Срок сдачи не может быть в прошлом");
       }
 
@@ -184,7 +201,11 @@ export const issueRouter = createTRPCRouter({
             title: input.title,
             body: body,
             labels: [
-              `Дедлайн:${format(deadlineDate, "MM-dd-yyyy")}`,
+              `Дедлайн:${formatInTimeZone(
+                deadlineDate,
+                TIMEZONE,
+                "MM-dd-yyyy"
+              )}`,
               `Преподаватель:${getFullName(teacherExists)}`,
               `Предмет:${subjectExists.name}`,
               `Длительность:${formatDuration(input.duration)}`,

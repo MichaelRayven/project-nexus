@@ -4,31 +4,19 @@ import { User } from "better-auth";
 import { headers } from "next/headers";
 import { cache } from "react";
 
+/**
+ * @see: https://trpc.io/docs/server/context
+ */
 export const createTRPCContext = cache(async () => {
-  /**
-   * @see: https://trpc.io/docs/server/context
-   */
   return { user: null };
 });
 
 type Context = {
-  /**
-   * User is nullable
-   */
   user: User | null;
 };
 
-// Avoid exporting the entire t-object
-// since it's not very descriptive.
-// For instance, the use of a t variable
-// is common in i18n libraries.
-const t = initTRPC.context<Context>().create({
-  /**
-   * @see https://trpc.io/docs/server/data-transformers
-   */
-  // transformer: superjson,
-});
-// Base router and procedure helpers
+const t = initTRPC.context<Context>().create({});
+
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;

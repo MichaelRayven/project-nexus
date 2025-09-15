@@ -1,12 +1,15 @@
 "use client";
 
 import { useIssue } from "@/hooks/use-issue";
-import { useIssueActions } from "@/hooks/use-issue-actions";
-import { cn } from "@/lib/utils";
+import { cn, TIMEZONE } from "@/lib/utils";
+import { formatInTimeZone } from "date-fns-tz";
+import { ru } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BranchCreationDialog } from "./branch-creation-dialog";
+import { TaskPageSkeleton } from "./task-page-skeleton";
+import { AssignmentButton } from "./assignment-button";
 
 import {
   ArrowLeftIcon,
@@ -18,8 +21,6 @@ import {
   GitBranchIcon,
   GitPullRequestIcon,
   SendIcon,
-  UserIcon,
-  UserMinusIcon,
   UsersIcon,
 } from "lucide-react";
 import rehypeKatex from "rehype-katex";
@@ -29,20 +30,25 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Separator } from "./ui/separator";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface TaskPageProps {
-  issueId: number;
+  issueNumber: number;
 }
 
-export function TaskPage({ issueId }: TaskPageProps) {
+export function TaskPage({ issueNumber }: TaskPageProps) {
   const router = useRouter();
+
+  const trpc = useTRPC();
+  const { data: issue, isLoading } = useQuery(
+    trpc.issueByNumber.queryOptions({ issueNumber })
+  );
+
   const {
-    issue,
-    isLoading,
     linkedBranches,
     pullRequests,
     assignees,
-    isAssignee,
     status,
     labels,
     teacherLabel,
@@ -50,30 +56,10 @@ export function TaskPage({ issueId }: TaskPageProps) {
     deadlineLabel,
     durationLabel,
     categoryLabel,
-  } = useIssue({ issueId });
-
-  const {
-    handleAssignSelf,
-    handleUnassignSelf,
-    handleSendForReview,
-    handleEditIssue,
-    isAssigning,
-    isUnassigning,
-  } = useIssueActions({
-    issueId: issue?.id || "",
-    issueNumber: issue?.number || 0,
-  });
+  } = useIssue({ issue });
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-6 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
+    return <TaskPageSkeleton />;
   }
 
   if (!issue) {
@@ -84,7 +70,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
             Задача не найдена
           </h1>
           <p className="text-gray-600 mb-6">
-            Задача с номером #{issueId} не существует или была удалена.
+            Задача с номером #{issueNumber} не существует или была удалена.
           </p>
           <Button onClick={() => router.back()}>
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
@@ -176,28 +162,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
               <h3 className="text-lg font-semibold">Действия</h3>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!isAssignee ? (
-                <Button
-                  onClick={handleAssignSelf}
-                  disabled={isAssigning}
-                  className="w-full"
-                  size="sm"
-                >
-                  <UserIcon className="h-4 w-4 mr-2" />
-                  {isAssigning ? "Назначаем..." : "Выполнить"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleUnassignSelf}
-                  disabled={isUnassigning}
-                  variant="outline"
-                  className="w-full"
-                  size="sm"
-                >
-                  <UserMinusIcon className="h-4 w-4 mr-2" />
-                  {isUnassigning ? "Снимаем..." : "Отказаться"}
-                </Button>
-              )}
+              <AssignmentButton issue={issue} />
 
               {linkedBranches.length === 0 && pullRequests.length === 0 && (
                 <BranchCreationDialog issue={issue} />
@@ -205,7 +170,7 @@ export function TaskPage({ issueId }: TaskPageProps) {
 
               {status?.status === "IN_PROGRESS" && (
                 <Button
-                  onClick={() => handleSendForReview(issue.url)}
+                  onClick={() => {}}
                   variant="outline"
                   className="w-full"
                   size="sm"
@@ -291,7 +256,12 @@ export function TaskPage({ issueId }: TaskPageProps) {
                     Создано
                   </div>
                   <div>
-                    {new Date(issue.createdAt).toLocaleDateString("ru-RU")}
+                    {formatInTimeZone(
+                      new Date(issue.createdAt),
+                      TIMEZONE,
+                      "P",
+                      { locale: ru }
+                    )}
                   </div>
                 </div>
               </div>
@@ -303,7 +273,12 @@ export function TaskPage({ issueId }: TaskPageProps) {
                       Обновлено
                     </div>
                     <div>
-                      {new Date(issue.updatedAt).toLocaleDateString("ru-RU")}
+                      {formatInTimeZone(
+                        new Date(issue.updatedAt),
+                        TIMEZONE,
+                        "P",
+                        { locale: ru }
+                      )}
                     </div>
                   </div>
                 </div>

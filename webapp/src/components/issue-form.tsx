@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { TIMEZONE } from "@/lib/utils";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
@@ -40,6 +40,8 @@ import {
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import remarkGfm from "remark-gfm";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 const formSchema = z.object({
   title: z
@@ -97,20 +99,26 @@ export function IssueForm({
 
   const resources = form.watch("resources");
 
-  const { data: subjects } = trpc.subjectList.useQuery();
-  const { data: teachers } = trpc.teacherList.useQuery();
-  const utils = trpc.useUtils();
-  const mutation = trpc.issueAdd.useMutation({
-    onError: (error) => {
-      toast.error(error.message);
-    },
-    onSuccess: () => {
-      form.reset();
-      toast.success("Задача добавлена");
-      utils.issueListWeek.invalidate();
-      onIssueAdded();
-    },
-  });
+  const trpc = useTRPC();
+  const { data: subjects } = useQuery(trpc.subjectList.queryOptions());
+  const { data: teachers } = useQuery(trpc.teacherList.queryOptions());
+  const queryClient = useQueryClient();
+  const invalidateIssueListWeek = () => {
+    queryClient.invalidateQueries({ queryKey: trpc.issueListWeek.queryKey() });
+  };
+  const mutation = useMutation(
+    trpc.issueAdd.mutationOptions({
+      onError: (error) => {
+        toast.error(error.message);
+      },
+      onSuccess: () => {
+        form.reset();
+        toast.success("Задача добавлена");
+        invalidateIssueListWeek();
+        onIssueAdded();
+      },
+    })
+  );
 
   function handleNext() {
     form
@@ -134,7 +142,7 @@ export function IssueForm({
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate({
       ...values,
-      deadline: format(values.deadline, "MM-dd-yyyy"),
+      deadline: formatInTimeZone(values.deadline, TIMEZONE, "MM-dd-yyyy"),
     });
   }
 
@@ -292,7 +300,9 @@ export function IssueForm({
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP", { locale: ru })
+                            formatInTimeZone(field.value, TIMEZONE, "PPP", {
+                              locale: ru,
+                            })
                           ) : (
                             <span>Выберите дату</span>
                           )}
@@ -306,7 +316,9 @@ export function IssueForm({
                         selected={field.value}
                         onSelect={field.onChange}
                         locale={ru}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) =>
+                          date < toZonedTime(new Date(), TIMEZONE)
+                        }
                         captionLayout="dropdown"
                       />
                     </PopoverContent>

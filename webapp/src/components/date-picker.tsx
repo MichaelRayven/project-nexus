@@ -3,6 +3,9 @@
 import * as React from "react";
 import { parseDate } from "chrono-node";
 import { CalendarIcon } from "lucide-react";
+import { TIMEZONE } from "@/lib/utils";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { ru } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,18 +22,14 @@ function formatDate(date: Date | undefined) {
     return "";
   }
 
-  return date.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return formatInTimeZone(date, TIMEZONE, "dd MMMM yyyy", { locale: ru });
 }
 
 export function DatePicker({ label = "Schedule Date" }: { label: string }) {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("In 2 days");
   const [date, setDate] = React.useState<Date | undefined>(
-    parseDate(value) || undefined
+    parseDate(value) ? toZonedTime(parseDate(value)!, TIMEZONE) : undefined
   );
   const [month, setMonth] = React.useState<Date | undefined>(date);
 
@@ -47,10 +46,11 @@ export function DatePicker({ label = "Schedule Date" }: { label: string }) {
           className="bg-background pr-10"
           onChange={(e) => {
             setValue(e.target.value);
-            const date = parseDate(e.target.value);
-            if (date) {
-              setDate(date);
-              setMonth(date);
+            const parsedDate = parseDate(e.target.value);
+            if (parsedDate) {
+              const zonedDate = toZonedTime(parsedDate, TIMEZONE);
+              setDate(zonedDate);
+              setMonth(zonedDate);
             }
           }}
           onKeyDown={(e) => {

@@ -1,5 +1,4 @@
 import { IssueNode } from "@/lib/interface";
-import { trpc } from "@/trpc/client";
 import { GitBranchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +16,8 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent } from "./ui/card";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface BranchCreationDialogProps {
   issue: IssueNode;
@@ -26,28 +27,31 @@ export function BranchCreationDialog({ issue }: BranchCreationDialogProps) {
   const [branchName, setBranchName] = useState("");
   const [isComplete, setIsComplete] = useState(true);
 
-  const utils = trpc.useUtils();
-  const mutation = trpc.createLinkedBranch.useMutation({
-    onSuccess: () => {
-      toast.success("Ветка создана успешно");
-      utils.getById.invalidate({ issueId: issue!.number });
-      utils.issueListWeek.invalidate(); // Also invalidate weekly data
-      setIsComplete(true);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    trpc.createLinkedBranch.mutationOptions({
+      onSuccess: () => {
+        toast.success("Ветка создана успешно");
+        queryClient.invalidateQueries(
+          trpc.issueByNumber.queryFilter({ issueNumber: issue!.number })
+        );
+        setIsComplete(true);
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    })
+  );
 
-  // Generate default branch name when dialog opens
   useEffect(() => {
     if (issue) {
       const escapedTitle = issue.title
         .toLowerCase()
-        .replace(/[^а-яa-z0-9\s-]/g, "") // Remove special characters except spaces and hyphens
-        .replace(/\s+/g, "-") // Replace spaces with hyphens
-        .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-        .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+        .replace(/[^а-яa-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
 
       const defaultName = `${issue.number}-${escapedTitle}`;
       setBranchName(defaultName);
@@ -86,7 +90,6 @@ export function BranchCreationDialog({ issue }: BranchCreationDialogProps) {
 
       <DialogContent className="sm:max-w-[500px]">
         {!isComplete ? (
-          // Branch Creation State
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -132,7 +135,6 @@ export function BranchCreationDialog({ issue }: BranchCreationDialogProps) {
             </DialogFooter>
           </>
         ) : (
-          // Instructions State
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
