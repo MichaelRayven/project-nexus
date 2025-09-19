@@ -25,7 +25,7 @@ interface BranchCreationDialogProps {
 
 export function BranchCreationDialog({ issue }: BranchCreationDialogProps) {
   const [branchName, setBranchName] = useState("");
-  const [isComplete, setIsComplete] = useState(true);
+  const [isComplete, setIsComplete] = useState(false);
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();

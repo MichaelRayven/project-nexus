@@ -1,0 +1,603 @@
+---
+title: Сортировка базы и вывод на экран. Вар. 22131
+description: Первая часть курсовой работы по структурам и алгоритмам обработки данных вариант №22131
+---
+
+[Требования к заданию](https://nexus.michaelrayven.ru/task/29)  
+[Пособие по СиАОД](https://drive.google.com/file/d/15siqjB_PpTFHuq4GM_NuahQenBEzU-6e/view?usp=sharing)  
+[База данных](./testBase2.dat)
+
+### Теоретическая основа
+
+**База данных "Предприятие"** — это система для хранения и обработки информации о сотрудниках предприятия. Каждая запись содержит ФИО сотрудника, номер отдела, должность и дату рождения.
+
+**Структура записи:**
+- ФИО сотрудника: 30 символов в кодировке CP866
+- Номер отдела: short int (2 байта)
+- Должность: 22 символа в кодировке CP866
+- Дата рождения: 10 символов в формате дд-мм-гг
+
+**Алгоритм сортировки:** Используется пирамидальная сортировка (heap sort) для упорядочивания записей по дню рождения и ФИО.
+
+### Проблема кодировки CP866
+
+Кодировка CP866 — это однобайтовая кодировка символов (code page 866), разработанная для MS-DOS и других систем в 1980-е годы. Она используется для отображения кириллических символов (русский, украинский, болгарский и др.) в DOS-программах.  
+- Каждому символу соответствует 1 байт (256 возможных символов).  
+- Диапазон 0–127 совпадает с ASCII.  
+- Диапазон 128–255 содержит кириллические буквы и псевдографику.  
+
+Современные Unix-подобные системы не поддерживают CP866 из-за чего возникают проблемы с отображением русских символов.  
+Системы Windows все еще поддерживают CP866, но по умолчанию используется UTF-8.  
+
+Для решения проблемы кодировка CP866 конвертируется в UTF-8 с помощью встроенной библиотеки iconv.  
+Для Windows рекомендуется использовать [libiconv-for-Windows](https://github.com/pffang/libiconv-for-Windows) — портированную версию библиотеки iconv, которая обеспечивает корректную конвертацию кодировок.  
+
+### Ход выполнения
+
+Решение разработано под Unix системы на языке C++ с использованием библиотеки iconv для конвертации кодировок.
+
+#### 1. Заголовочный файл утилит
+
+Файл содержит объявления функций для работы с кодировками и форматированием вывода.
+
+```c++ title="utils.h"
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <cstring>
+#include <iostream>
+#include <string>
+
+std::string cp866_to_utf8(const char *cp866_str, size_t length);
+std::string cp866_to_utf8(const char *cp866_str);
+std::string trim_spaces(const std::string &str);
+size_t utf8_length(const std::string &str);
+void clear_screen();
+void wait_for_key();
+std::string pad_string(const std::string &str, size_t width, char fill = ' ');
+
+#endif
+```
+
+#### 2. Реализация утилит
+
+Функции для конвертации кодировок и форматирования текста.
+
+```c++ title="utils.cpp"
+#include "utils.h"
+#include <cerrno>
+#include <cstdlib>
+#include <iconv.h>
+
+std::string cp866_to_utf8(const char *cp866_str, size_t length) {
+  iconv_t conv = iconv_open("UTF-8", "CP866");
+
+  if (conv == (iconv_t)-1) {
+    throw std::runtime_error(
+        "Error: Cannot initialize iconv conversion (CP866 -> UTF-8)");
+  }
+
+  size_t out_size = length * 4;
+  char *out_buf = new char[out_size];
+  char *out_ptr = out_buf;
+  memset(out_buf, 0, out_size);
+
+  char *in_buf = const_cast<char *>(cp866_str);
+  size_t in_size = length;
+
+  size_t result = iconv(conv, &in_buf, &in_size, &out_ptr, &out_size);
+
+  if (result == (size_t)-1) {
+    delete[] out_buf;
+    iconv_close(conv);
+    throw std::runtime_error("Error during CP866 to UTF-8 conversion: " +
+                             std::string(strerror(errno)));
+  }
+
+  std::string utf8_result(out_buf);
+
+  delete[] out_buf;
+  iconv_close(conv);
+
+  return utf8_result;
+}
+
+std::string cp866_to_utf8(const char *cp866_str) {
+  return cp866_to_utf8(cp866_str, strlen(cp866_str));
+}
+
+std::string trim_spaces(const std::string &str) {
+  size_t end = str.find_last_not_of(' ');
+  if (end == std::string::npos) {
+    return "";
+  }
+  return str.substr(0, end + 1);
+}
+
+size_t utf8_length(const std::string &str) {
+  size_t len = 0;
+  for (unsigned char c : str) {
+    if ((c & 0xC0) != 0x80) {
+      len++;
+    }
+  }
+  return len;
+}
+
+void clear_screen() {
+#ifdef _WIN32
+  system("cls");
+#else
+  system("clear");
+#endif
+}
+
+void wait_for_key() {
+  std::cout << "\nPress Enter to continue...";
+  std::cin.ignore();
+  std::cin.get();
+}
+
+std::string pad_string(const std::string &str, size_t width, char fill) {
+  if (utf8_length(str) >= width)
+    return str;
+  return str + std::string(width - utf8_length(str), fill);
+}
+```
+
+#### 3. Заголовочный файл базы данных
+
+Определение структуры записи сотрудника и класса для работы с базой данных.
+
+```c++ title="database.h"
+#ifndef DATABASE_H
+#define DATABASE_H
+
+#include "utils.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+
+const size_t RECORDS_COUNT = 4000;
+
+struct EmployeeRecord {
+  char fio[30];
+  short int department;
+  char position[22];
+  char birth_date[10];
+};
+
+typedef bool (*CompareFunction)(const EmployeeRecord *record1,
+                                const EmployeeRecord *record2);
+
+class EmployeeDatabase {
+private:
+  EmployeeRecord *records;
+  int *sorted_indices;
+
+public:
+  EmployeeDatabase();
+  ~EmployeeDatabase();
+
+  bool load_database(const char *filename);
+  void display_header() const;
+  void display_record(const EmployeeRecord &record, size_t index) const;
+  void display_records_paginated(size_t records_per_page = 20);
+  void display_sorted_records_paginated(size_t records_per_page = 20);
+  const EmployeeRecord *get_record(size_t index) const;
+
+private:
+  void build_max_heap(int indices[], int L, int R,
+                      CompareFunction compare_func);
+  void heap_sort(int indices[], int n, CompareFunction compare_func);
+  static bool compare_records(const EmployeeRecord *record1,
+                              const EmployeeRecord *record2);
+  static int extract_birth_day(const EmployeeRecord &record);
+  size_t get_next_page(size_t current_page, size_t total_pages);
+};
+
+#endif
+```
+
+#### 4. Реализация базы данных
+
+Основные методы класса EmployeeDatabase для загрузки данных и сортировки.
+
+```c++ title="database.cpp"
+#include "database.h"
+#include "utils.h"
+
+EmployeeDatabase::EmployeeDatabase() {
+  records = new EmployeeRecord[RECORDS_COUNT];
+  sorted_indices = new int[RECORDS_COUNT];
+}
+
+EmployeeDatabase::~EmployeeDatabase() {
+  delete[] records;
+  delete[] sorted_indices;
+}
+
+bool EmployeeDatabase::load_database(const char *filename) {
+  FILE *fp = fopen(filename, "rb");
+  if (!fp) {
+    std::cerr << "Error: Cannot open file " << filename << std::endl;
+    return false;
+  }
+
+  for (size_t i = 0; i < RECORDS_COUNT; i++) {
+    sorted_indices[i] = i;
+  }
+
+  size_t records_read = 0;
+
+  while (fread(&records[records_read], sizeof(EmployeeRecord), 1, fp) == 1) {
+    records_read++;
+
+    if (records_read >= RECORDS_COUNT) {
+      break;
+    }
+  }
+
+  fclose(fp);
+
+  heap_sort(sorted_indices, RECORDS_COUNT, compare_records);
+
+  std::cout << "Loaded " << records_read << " records from " << filename
+            << std::endl;
+  return true;
+}
+
+const EmployeeRecord *EmployeeDatabase::get_record(size_t index) const {
+  if (index < RECORDS_COUNT) {
+    return &records[index];
+  }
+  return nullptr;
+}
+
+int EmployeeDatabase::extract_birth_day(const EmployeeRecord &record) {
+  std::string birth_date = trim_spaces(cp866_to_utf8(record.birth_date, 10));
+  if (birth_date.length() >= 2) {
+    return std::stoi(birth_date.substr(0, 2));
+  }
+  return 0;
+}
+
+bool EmployeeDatabase::compare_records(const EmployeeRecord *record1,
+                                       const EmployeeRecord *record2) {
+  if (!record1 || !record2) {
+    return false;
+  }
+
+  int day1 = extract_birth_day(*record1);
+  int day2 = extract_birth_day(*record2);
+
+  if (day1 != day2) {
+    return day1 < day2;
+  }
+
+  std::string name1 = trim_spaces(cp866_to_utf8(record1->fio, 30));
+  std::string name2 = trim_spaces(cp866_to_utf8(record2->fio, 30));
+
+  return name1 < name2;
+}
+
+void EmployeeDatabase::build_max_heap(int indices[], int L, int R,
+                                      CompareFunction compare_func) {
+  int x = indices[L], i = L, j = 2 * i + 1;
+
+  while (j <= R) {
+    if (j < R && compare_func(&records[indices[j]], &records[indices[j + 1]])) {
+      j = j + 1;
+    }
+
+    if (!compare_func(&records[x], &records[indices[j]]))
+      break;
+
+    indices[i] = indices[j];
+    i = j;
+    j = 2 * i + 1;
+  }
+
+  indices[i] = x;
+}
+
+void EmployeeDatabase::heap_sort(int indices[], int n,
+                                 CompareFunction compare_func) {
+  for (int L = n / 2 - 1; L >= 0; L--) {
+    build_max_heap(indices, L, n - 1, compare_func);
+  }
+
+  for (int R = n - 1; R > 0; R--) {
+    int temp = indices[0];
+    indices[0] = indices[R];
+    indices[R] = temp;
+
+    build_max_heap(indices, 0, R - 1, compare_func);
+  }
+}
+
+void EmployeeDatabase::display_header() const {
+  std::cout << pad_string("№", 5) << " " << pad_string("ФИО сотрудника", 35)
+            << " " << pad_string("Отдел", 10) << " "
+            << pad_string("Должность", 25) << " "
+            << pad_string("Дата рождения", 15) << std::endl;
+
+  std::cout << std::string(5, '-') << " " << std::string(35, '-') << " "
+            << std::string(10, '-') << " " << std::string(25, '-') << " "
+            << std::string(15, '-') << std::endl;
+}
+
+void EmployeeDatabase::display_record(const EmployeeRecord &record,
+                                      size_t index) const {
+  std::string fio_utf8 = trim_spaces(cp866_to_utf8(record.fio, 30));
+  std::string position_utf8 = trim_spaces(cp866_to_utf8(record.position, 22));
+  std::string birth_date_utf8 =
+      trim_spaces(cp866_to_utf8(record.birth_date, 10));
+
+  std::cout << pad_string(std::to_string(index + 1), 5) << " "
+            << pad_string(fio_utf8, 35) << " "
+            << pad_string(std::to_string(record.department), 10) << " "
+            << pad_string(position_utf8, 25) << " "
+            << pad_string(birth_date_utf8, 15) << std::endl;
+}
+
+size_t EmployeeDatabase::get_next_page(size_t current_page,
+                                       size_t total_pages) {
+  std::cout << std::endl;
+  std::cout << "Команды:" << std::endl;
+  std::cout << "  n - следующая страница" << std::endl;
+  std::cout << "  p - предыдущая страница" << std::endl;
+  std::cout << "  q - выход" << std::endl;
+  std::cout << "  g - перейти к странице" << std::endl;
+
+  char choice;
+  std::cout << "\nВыберите действие: ";
+  std::cin >> choice;
+
+  switch (choice) {
+  case 'n':
+  case 'N':
+    if (current_page < total_pages - 1) {
+      return current_page + 1;
+    } else {
+      std::cout << "Это последняя страница." << std::endl;
+      wait_for_key();
+    }
+    break;
+
+  case 'p':
+  case 'P':
+    if (current_page > 0) {
+      return current_page - 1;
+    } else {
+      std::cout << "Это первая страница." << std::endl;
+      wait_for_key();
+    }
+    break;
+
+  case 'g':
+  case 'G': {
+    size_t target_page;
+    std::cout << "Введите номер страницы (1-" << total_pages << "): ";
+    std::cin >> target_page;
+
+    if (target_page >= 1 && target_page <= total_pages) {
+      return target_page - 1;
+    } else {
+      std::cout << "Неверный номер страницы." << std::endl;
+      wait_for_key();
+    }
+    break;
+  }
+
+  case 'q':
+  case 'Q':
+    return -1;
+
+  default:
+    std::cout << "Неверная команда." << std::endl;
+    wait_for_key();
+    break;
+  }
+}
+
+void EmployeeDatabase::display_records_paginated(size_t records_per_page) {
+  size_t current_page = 0;
+  size_t total_pages =
+      (RECORDS_COUNT + records_per_page - 1) / records_per_page;
+
+  while (current_page < total_pages) {
+    clear_screen();
+
+    std::cout << "=== База данных 'Предприятие' ===" << std::endl;
+    std::cout << "Страница " << (current_page + 1) << " из " << total_pages
+              << std::endl;
+    std::cout << "Всего записей: " << RECORDS_COUNT << std::endl;
+    std::cout << std::endl;
+
+    display_header();
+
+    size_t start_index = current_page * records_per_page;
+    size_t end_index = std::min(start_index + records_per_page, RECORDS_COUNT);
+
+    for (size_t i = start_index; i < end_index; ++i) {
+      display_record(records[i], i);
+    }
+
+    current_page = get_next_page(current_page, total_pages);
+
+    if (current_page == -1) {
+      return;
+    }
+  }
+}
+
+void EmployeeDatabase::display_sorted_records_paginated(
+    size_t records_per_page) {
+  size_t current_page = 0;
+  size_t total_pages =
+      (RECORDS_COUNT + records_per_page - 1) / records_per_page;
+
+  while (current_page < total_pages) {
+    clear_screen();
+
+    std::cout << "=== База данных 'Предприятие' (Отсортировано по дню рождения "
+                 "и ФИО) ==="
+              << std::endl;
+    std::cout << "Страница " << (current_page + 1) << " из " << total_pages
+              << std::endl;
+    std::cout << "Всего записей: " << RECORDS_COUNT << std::endl;
+    std::cout << std::endl;
+
+    display_header();
+
+    size_t start_index = current_page * records_per_page;
+    size_t end_index = std::min(start_index + records_per_page, RECORDS_COUNT);
+
+    for (size_t i = start_index; i < end_index; ++i) {
+      int record_index = sorted_indices[i];
+      display_record(records[record_index], i);
+    }
+
+    current_page = get_next_page(current_page, total_pages);
+
+    if (current_page == -1) {
+      return;
+    }
+  }
+}
+
+```
+
+#### 5. Функции отображения данных
+
+Методы для постраничного отображения записей с навигацией и конвертацией кодировок.
+
+```c++ title="main.cpp"
+#include "database.h"
+#include "utils.h"
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+
+int main() {
+  EmployeeDatabase database;
+
+  const char *filename = "testBase2.dat";
+  if (!database.load_database(filename)) {
+    std::cerr << "Failed to load database. Please ensure testBase2.dat exists "
+                 "in the current directory."
+              << std::endl;
+    std::cout << "Press Enter to exit...";
+    std::cin.get();
+    return 1;
+  }
+
+  while (true) {
+    clear_screen();
+    std::cout << "=== Главное меню ===" << std::endl;
+    std::cout << "1. Просмотр базы данных" << std::endl;
+    std::cout << "2. Просмотр отсортированной базы данных" << std::endl;
+    std::cout << "3. Информация о базе данных" << std::endl;
+    std::cout << "4. Выход" << std::endl;
+    std::cout << std::endl;
+
+    int choice;
+    std::cout << "Выберите действие (1-4): ";
+    std::cin >> choice;
+
+    switch (choice) {
+    case 1:
+      database.display_records_paginated(20);
+      break;
+
+    case 2:
+      database.display_sorted_records_paginated(20);
+      break;
+
+    case 3: {
+      clear_screen();
+      std::cout << "=== Информация о базе данных ===" << std::endl;
+      std::cout << "Файл: " << filename << std::endl;
+      std::cout << "Общее количество записей: " << RECORDS_COUNT << std::endl;
+      std::cout << std::endl;
+      std::cout << "Структура записи:" << std::endl;
+      std::cout << "- ФИО сотрудника: 30 символов" << std::endl;
+      std::cout << "- Номер отдела: short int" << std::endl;
+      std::cout << "- Должность: 22 символа" << std::endl;
+      std::cout << "- Дата рождения: 10 символов (дд-мм-гг)" << std::endl;
+      std::cout << std::endl;
+      std::cout << "Размер одной записи: " << sizeof(EmployeeRecord) << " байт"
+                << std::endl;
+      wait_for_key();
+      break;
+    }
+
+    case 4:
+      std::cout << "До свидания!" << std::endl;
+      return 0;
+
+    default:
+      std::cout << "Неверный выбор. Попробуйте снова." << std::endl;
+      wait_for_key();
+      break;
+    }
+  }
+
+  return 0;
+}
+```
+
+### Алгоритмы и функции
+
+#### Алгоритм конвертации кодировок
+
+**Функция `cp866_to_utf8`** выполняет конвертацию строки из кодировки CP866 в UTF-8:
+
+1. **Инициализация конвертера** - создается дескриптор конвертации с помощью `iconv_open("UTF-8", "CP866")`
+2. **Выделение буфера** - создается выходной буфер размером `length * 4` (максимальная длина UTF-8 символа)
+3. **Конвертация** - вызывается `iconv()` для преобразования данных
+4. **Обработка ошибок** - проверяется результат конвертации и выбрасывается исключение при ошибке
+5. **Очистка ресурсов** - освобождается память и закрывается дескриптор конвертации
+
+#### Алгоритм пирамидальной сортировки (Heap Sort)
+
+**Функция `heap_sort` и `build_max_heap`** реализует алгоритм пирамидальной сортировки:
+- [Пособие по СиАОД стр. 20](https://drive.google.com/file/d/15siqjB_PpTFHuq4GM_NuahQenBEzU-6e/view?usp=sharing)
+
+#### Алгоритм сравнения записей
+
+**Функция `compare_records`** определяет порядок сортировки записей:
+
+1. **Извлечение дня рождения** - из даты рождения извлекается день в виде целого числа
+2. **Первичное сравнение** - сравниваются дни рождения (больший день идет первым)
+3. **Вторичное сравнение** - при равных днях сравниваются ФИО в лексикографическом порядке
+
+#### Алгоритм постраничного отображения
+
+**Функция `display_records_paginated`** реализует постраничный просмотр:
+
+1. **Расчет страниц** - определяется общее количество страниц
+2. **Отображение страницы** - выводится заголовок и записи текущей страницы
+3. **Навигация** - пользователь может переходить между страницами
+
+#### Функции форматирования
+
+**Функция `utf8_length`** корректно подсчитывает количество символов в UTF-8 строке:
+- Проверяет битовые маски для определения начала символа
+- Игнорирует байты-продолжения ([Подробнее здесь](https://medium.com/@panditakash38/mastering-unicode-in-c-a-comprehensive-guide-to-utf-8-and-utf-16-in-windows-355687c35641))
+
+**Функция `pad_string`** выравнивает строку до заданной ширины:
+- Использует `utf8_length` для корректного подсчета символов
+- Добавляет символы-заполнители до достижения нужной ширины
+
+#### Основной алгоритм программы
+
+**Функция `main`** управляет выполнением программы:
+
+1. **Инициализация** - создается объект базы данных
+2. **Загрузка данных** - вызывается `load_database` для чтения файла
+3. **Главный цикл** - отображается меню и обрабатываются команды пользователя
+4. **Обработка команд** - выполняется соответствующее действие в зависимости от выбора
+5. **Завершение** - корректное завершение программы с освобождением ресурсов

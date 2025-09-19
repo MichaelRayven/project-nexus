@@ -53,7 +53,7 @@ export function TaskTracker() {
                 {day.weekday}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               {day.tasks
                 .filter((task) => task !== null)
                 .map((task) => (
