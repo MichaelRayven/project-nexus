@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils";
 import { addDays, parse } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
+import { ru } from "date-fns/locale";
 import { z } from "zod";
 import {
   authedProcedure,
@@ -86,10 +87,13 @@ export const issueRouter = createTRPCRouter({
       }
     }),
   issueListWeek: authedProcedure.query(async (): Promise<IssueNode[][]> => {
+    // Use a fixed reference date to ensure consistency between server and client
+    const baseDate = toZonedTime(new Date(), TIMEZONE);
     const dates = Array.from({ length: 7 }, (_, i) => {
-      const date = toZonedTime(new Date(), TIMEZONE);
-      const updatedDate = addDays(date, i);
-      return formatInTimeZone(updatedDate, TIMEZONE, "MM-dd-yyyy");
+      const updatedDate = addDays(baseDate, i);
+      return formatInTimeZone(updatedDate, TIMEZONE, "MM-dd-yyyy", {
+        locale: ru,
+      });
     });
 
     const results = await Promise.all(

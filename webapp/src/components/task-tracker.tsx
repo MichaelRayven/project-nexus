@@ -16,9 +16,10 @@ export function TaskTracker() {
   const trpc = useTRPC();
   const { data } = useQuery(trpc.issueListWeek.queryOptions());
 
+  const baseDate = toZonedTime(new Date(), TIMEZONE);
   const days = Array.from({ length: 7 }, (_, i) => {
-    const date = toZonedTime(new Date(), TIMEZONE);
-    const updatedDate = addDays(date, i);
+    // Use the same date generation logic as the server to ensure consistency
+    const updatedDate = addDays(baseDate, i);
 
     return {
       date: updatedDate,

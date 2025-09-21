@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import { parse } from "date-fns";
+import { addDays, parse } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 import { IssueNode } from "./interface";
@@ -73,11 +73,11 @@ export function getIssueStatus(issue: IssueNode): {
       "MM-dd-yyyy",
       toZonedTime(new Date(), TIMEZONE)
     );
+
     const deadlineDate = fromZonedTime(parsed, TIMEZONE);
 
     const now = toZonedTime(new Date(), TIMEZONE);
-    const targetDate = toZonedTime(deadlineDate, TIMEZONE);
-    if (now > targetDate) {
+    if (now > addDays(deadlineDate, 1)) {
       return { message: "Просрочена", status: "EXPIRED" };
     }
   }
