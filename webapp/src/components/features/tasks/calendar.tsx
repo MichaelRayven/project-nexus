@@ -4,6 +4,7 @@ import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { cn, getIssueStatus, TIMEZONE } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { isSameMonth } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import Link from "next/link";
@@ -27,10 +28,10 @@ function TaskCalendarDay({ issues }: { issues?: any[] }) {
 
   if (!issues)
     return (
-      <ul className="flex flex-col items-start gap-4 my-4 max-h-[200px] overflow-y-auto">
+      <ul className="flex flex-col items-start gap-4 my-4 flex-1 overflow-y-auto min-h-[100px]">
         <li
           className={cn(
-            "w-[10ch] md:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+            "w-[10ch] lg:w-[15ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
             "transition-all duration-300 ease-in-out",
             "bg-card text-foreground border-border hover:bg-primary/5 hover:text-primary hover:border-primary"
           )}
@@ -43,7 +44,7 @@ function TaskCalendarDay({ issues }: { issues?: any[] }) {
     );
 
   return (
-    <ul className="flex flex-col items-start gap-2 my-4 flex-1 overflow-y-auto">
+    <ul className="flex flex-col items-start gap-2 my-4 flex-1 overflow-y-auto min-h-[100px]">
       {issues?.map((item) => {
         const { status } = getIssueStatus(item);
 
@@ -51,7 +52,7 @@ function TaskCalendarDay({ issues }: { issues?: any[] }) {
           <li
             key={item!.id}
             className={cn(
-              "w-[10ch] md:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+              "w-[10ch] lg:w-[15ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
               "transition-all duration-300 ease-in-out",
               getStatusColor(status)
             )}
@@ -99,6 +100,7 @@ export function TaskCalendar({ className }: { className?: string }) {
       onMonthChange={(date) => {
         setMonth(date);
       }}
+      showOutsideDays={false}
       timeZone={TIMEZONE}
       locale={ru}
       components={{
