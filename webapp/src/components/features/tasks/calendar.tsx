@@ -36,10 +36,10 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
 
   if (isPending && !displayData)
     return (
-      <ul className="flex flex-col items-start gap-4 py-4">
+      <ul className="flex flex-col items-start gap-4 my-4 max-h-[200px] overflow-y-auto">
         <li
           className={cn(
-            "w-[10ch] sm:w-[20ch] p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+            "w-[10ch] sm:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
             "transition-all duration-300 ease-in-out",
             getStatusColor("")
           )}
@@ -52,7 +52,7 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
     );
 
   return (
-    <ul className="flex flex-col items-start gap-2 py-4">
+    <ul className="flex flex-col items-start gap-2 my-4 flex-1 overflow-y-auto">
       {displayData?.map((item) => {
         const { status } = getIssueStatus(item);
 
@@ -60,7 +60,7 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
           <li
             key={item!.id}
             className={cn(
-              "w-[10ch] sm:w-[20ch] p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+              "w-[10ch] sm:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
               "transition-all duration-300 ease-in-out",
               getStatusColor(status)
             )}
