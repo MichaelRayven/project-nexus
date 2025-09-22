@@ -1,22 +1,22 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { addDays } from "date-fns";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
-import { ru } from "date-fns/locale";
 import { TIMEZONE } from "@/lib/utils";
-import { TaskView } from "./task-view";
-import { IssueDialog } from "./issue-dialog";
-import { Button } from "./ui/button";
-import { PlusIcon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { addDays } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+import { ru } from "date-fns/locale";
+import { PlusIcon } from "lucide-react";
+import { IssueDialog } from "./issue-dialog";
+import { TaskView } from "./task-view";
+import { Button } from "./ui/button";
 
 export function TaskTracker() {
   const trpc = useTRPC();
   const { data } = useQuery(trpc.issueListWeek.queryOptions());
 
-  const baseDate = toZonedTime(new Date(), TIMEZONE);
+  const baseDate = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     // Use the same date generation logic as the server to ensure consistency
     const updatedDate = addDays(baseDate, i);

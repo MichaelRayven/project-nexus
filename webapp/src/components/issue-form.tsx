@@ -142,7 +142,7 @@ export function IssueForm({
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate({
       ...values,
-      deadline: formatInTimeZone(values.deadline, TIMEZONE, "MM-dd-yyyy"),
+      deadline: values.deadline.getTime(),
     });
   }
 
@@ -315,6 +315,7 @@ export function IssueForm({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
+                        timeZone={TIMEZONE}
                         locale={ru}
                         disabled={(date) =>
                           date < toZonedTime(new Date(), TIMEZONE)

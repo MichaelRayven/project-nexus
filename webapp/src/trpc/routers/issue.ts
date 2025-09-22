@@ -1,15 +1,17 @@
 import { db } from "@/db";
 import { githubGraphQL } from "@/graphql/client";
-import { GetIssuesByLabel, GetIssueByNumber } from "@/graphql/queries";
 import { CreateLinkedBranch } from "@/graphql/mutations";
+import { GetIssueByNumber, GetIssuesByLabel } from "@/graphql/queries";
 import { GetIssuesByLabelQuery } from "@/graphql/types";
+import { CreateLinkedBranchMutation } from "@/lib/github-types";
+import { IssueNode } from "@/lib/interface";
 import {
   formatCategory,
   formatDuration,
   getFullName,
   TIMEZONE,
 } from "@/lib/utils";
-import { addDays, parse } from "date-fns";
+import { addDays, format, parse } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import { z } from "zod";
@@ -18,8 +20,6 @@ import {
   collaboratorProcedure,
   createTRPCRouter,
 } from "../init";
-import { IssueNode } from "@/lib/interface";
-import { CreateLinkedBranchMutation } from "@/lib/github-types";
 
 export const issueRouter = createTRPCRouter({
   issueByNumber: authedProcedure
@@ -88,7 +88,7 @@ export const issueRouter = createTRPCRouter({
     }),
   issueListWeek: authedProcedure.query(async (): Promise<IssueNode[][]> => {
     // Use a fixed reference date to ensure consistency between server and client
-    const baseDate = toZonedTime(new Date(), TIMEZONE);
+    const baseDate = new Date();
     const dates = Array.from({ length: 7 }, (_, i) => {
       const updatedDate = addDays(baseDate, i);
       return formatInTimeZone(updatedDate, TIMEZONE, "MM-dd-yyyy", {
@@ -132,7 +132,7 @@ export const issueRouter = createTRPCRouter({
         category: z.enum(["homework", "labwork", "coursework", "other"]),
         subject: z.string(),
         teacher: z.string(),
-        deadline: z.string(),
+        deadline: z.number(),
         resources: z.array(
           z.object({
             name: z.string(),
@@ -162,17 +162,9 @@ export const issueRouter = createTRPCRouter({
         throw new Error("Указанный преподаватель не существует");
       }
 
-      const parsed = parse(
-        input.deadline,
-        "MM-dd-yyyy",
-        toZonedTime(new Date(), TIMEZONE)
-      );
-      const deadlineDate = fromZonedTime(parsed, TIMEZONE);
+      const deadlineDate = new Date(input.deadline);
 
-      // Check only the day
-      const now = toZonedTime(new Date(), TIMEZONE);
-      const targetDate = toZonedTime(deadlineDate, TIMEZONE);
-      if (now > targetDate) {
+      if (new Date() > addDays(deadlineDate, 1)) {
         throw new Error("Срок сдачи не может быть в прошлом");
       }
 
@@ -205,11 +197,7 @@ export const issueRouter = createTRPCRouter({
             title: input.title,
             body: body,
             labels: [
-              `Дедлайн:${formatInTimeZone(
-                deadlineDate,
-                TIMEZONE,
-                "MM-dd-yyyy"
-              )}`,
+              `Дедлайн:${format(deadlineDate, "MM-dd-yyyy")}`,
               `Преподаватель:${getFullName(teacherExists)}`,
               `Предмет:${subjectExists.name}`,
               `Длительность:${formatDuration(input.duration)}`,
