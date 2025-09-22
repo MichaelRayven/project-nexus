@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { githubGraphQL } from "@/graphql/client";
 import { CreateLinkedBranch } from "@/graphql/mutations";
-import { GetIssueByNumber, GetAllRepositoryIssues } from "@/graphql/queries";
+import { GetAllRepositoryIssues, GetIssueByNumber } from "@/graphql/queries";
 import { GetAllRepositoryIssuesQuery } from "@/graphql/types";
 import { CreateLinkedBranchMutation } from "@/lib/github-types";
 import { IssueNode } from "@/lib/interface";
@@ -11,11 +11,11 @@ import {
   getFullName,
   TIMEZONE,
 } from "@/lib/utils";
-import { addDays, format, parse } from "date-fns";
-import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
+import { addDays, format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
-import { unstable_cache, revalidateTag } from "next/cache";
 import {
   authedProcedure,
   collaboratorProcedure,
@@ -35,8 +35,6 @@ const getAllRepositoryIssues = unstable_cache(
           orderBy: { field: "CREATED_AT", direction: "DESC" },
         }
       );
-
-      console.log("result", result);
 
       return (result.repository?.issues.nodes || []).filter(
         (issue): issue is NonNullable<typeof issue> => issue !== null
@@ -88,7 +86,7 @@ export const issueRouter = createTRPCRouter({
       const { input } = opts;
 
       const deadlineDate = new Date(input.deadline);
-      const deadlineLabel = `дедлайн:${formatInTimeZone(
+      const deadlineLabel = `Дедлайн:${formatInTimeZone(
         deadlineDate,
         TIMEZONE,
         "MM-dd-yyyy"
@@ -117,7 +115,7 @@ export const issueRouter = createTRPCRouter({
 
     // Group issues by date
     const results = dates.map((date) => {
-      const deadlineLabel = `дедлайн:${date}`;
+      const deadlineLabel = `Дедлайн:${date}`;
       return allIssues.filter((issue) =>
         issue?.labels?.nodes?.some((label) => label?.name === deadlineLabel)
       );
@@ -150,7 +148,7 @@ export const issueRouter = createTRPCRouter({
       // Group issues by date
       const results: { [key: string]: IssueNode[] } = {};
       dates.forEach((date) => {
-        const deadlineLabel = `дедлайн:${date}`;
+        const deadlineLabel = `Дедлайн:${date}`;
         results[date] = allIssues.filter((issue) =>
           issue?.labels?.nodes?.some((label) => label?.name === deadlineLabel)
         );
