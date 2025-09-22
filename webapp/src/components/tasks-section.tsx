@@ -3,6 +3,8 @@ import { headers } from "next/dist/server/request/headers";
 import { TaskTracker } from "./task-tracker";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient, trpc } from "@/trpc/server";
+import { TaskCalendar } from "./features/tasks/calendar";
+import { Container } from "./ui/layout/container";
 
 export async function TasksSection() {
   // Generate dates for the 7-day sliding window (today + next 6 days)
@@ -19,7 +21,7 @@ export async function TasksSection() {
   return (
     <section id="features" className="py-24 bg-muted/30">
       {/* Added container with proper spacing for workflow cards */}
-      <div className="container">
+      <Container>
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tight text-balance">
             Задачи на неделю
@@ -32,7 +34,8 @@ export async function TasksSection() {
         <HydrationBoundary state={dehydrate(queryClient)}>
           <TaskTracker />
         </HydrationBoundary>
-      </div>
+        <TaskCalendar className="mt-16" />
+      </Container>
     </section>
   );
 }

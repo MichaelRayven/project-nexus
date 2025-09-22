@@ -11,6 +11,7 @@ import { PlusIcon } from "lucide-react";
 import { IssueDialog } from "./issue-dialog";
 import { TaskView } from "./task-view";
 import { Button } from "./ui/button";
+import { GridContainer } from "./ui/layout/grid-container";
 
 export function TaskTracker() {
   const trpc = useTRPC();
@@ -32,7 +33,7 @@ export function TaskTracker() {
   });
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 max-w-fd-container mx-auto">
+    <GridContainer>
       {days.map((day, index) => (
         <div key={index} className="relative group overflow-hidden rounded-xl">
           <Card className="hover:shadow-lg transition-shadow max-h-96 h-full overflow-y-auto">
@@ -65,6 +66,6 @@ export function TaskTracker() {
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 to-primary/60 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
         </div>
       ))}
-    </div>
+    </GridContainer>
   );
 }

@@ -49,18 +49,13 @@ export const issueRouter = createTRPCRouter({
   issueListDay: authedProcedure
     .input(
       z.object({
-        date: z.string(), // ISO string
+        deadline: z.number(),
       })
     )
     .query(async (opts): Promise<IssueNode[]> => {
-      const { date } = opts.input;
+      const { input } = opts;
 
-      const parsed = parse(
-        date,
-        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
-        toZonedTime(new Date(), TIMEZONE)
-      );
-      const deadlineDate = fromZonedTime(parsed, TIMEZONE);
+      const deadlineDate = new Date(input.deadline);
       const deadlineLabel = `дедлайн:${formatInTimeZone(
         deadlineDate,
         TIMEZONE,
