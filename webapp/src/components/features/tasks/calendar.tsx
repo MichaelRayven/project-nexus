@@ -7,18 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import Link from "next/link";
+import { useState } from "react";
 
-function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
-  const trpc = useTRPC();
-
-  // Use provided issues if available, otherwise fetch individually
-  const { data, isPending } = useQuery({
-    ...trpc.issueListDay.queryOptions({ deadline: date.getTime() }),
-    enabled: !issues,
-  });
-
-  const displayData = issues || data;
-
+function TaskCalendarDay({ issues }: { issues?: any[] }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":
@@ -34,14 +25,14 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
     }
   };
 
-  if (isPending && !displayData)
+  if (!issues)
     return (
       <ul className="flex flex-col items-start gap-4 my-4 max-h-[200px] overflow-y-auto">
         <li
           className={cn(
-            "w-[10ch] sm:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+            "w-[10ch] md:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
             "transition-all duration-300 ease-in-out",
-            getStatusColor("")
+            "bg-card text-foreground border-border hover:bg-primary/5 hover:text-primary hover:border-primary"
           )}
         >
           <div>
@@ -53,14 +44,14 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
 
   return (
     <ul className="flex flex-col items-start gap-2 my-4 flex-1 overflow-y-auto">
-      {displayData?.map((item) => {
+      {issues?.map((item) => {
         const { status } = getIssueStatus(item);
 
         return (
           <li
             key={item!.id}
             className={cn(
-              "w-[10ch] sm:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
+              "w-[10ch] md:w-[20ch] shrink-0 p-2 border-l-4 border-primary rounded-[0.25em] overflow-ellipsis whitespace-nowrap overflow-hidden text-left",
               "transition-all duration-300 ease-in-out",
               getStatusColor(status)
             )}
@@ -82,8 +73,10 @@ function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
 export function TaskCalendar({ className }: { className?: string }) {
   const trpc = useTRPC();
 
+  const [month, setMonth] = useState<Date>(new Date());
+
   // Get current month's date range
-  const now = new Date();
+  const now = month;
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
@@ -98,16 +91,20 @@ export function TaskCalendar({ className }: { className?: string }) {
     <Calendar
       mode="single"
       numberOfMonths={1}
+      month={month}
       className={cn(
         "w-full rounded-xl bg-card border shadow-sm hidden sm:block",
         className
       )}
+      onMonthChange={(date) => {
+        setMonth(date);
+      }}
       timeZone={TIMEZONE}
       locale={ru}
       components={{
         DayButton: ({ children, modifiers, day, className, ...props }) => {
           const dateKey = formatInTimeZone(day.date, TIMEZONE, "MM-dd-yyyy");
-          const dayIssues = monthIssues?.[dateKey] || [];
+          const dayIssues = monthIssues?.[dateKey];
 
           return (
             <CalendarDayButton
@@ -117,7 +114,7 @@ export function TaskCalendar({ className }: { className?: string }) {
               {...props}
             >
               {children}
-              <TaskCalendarDay date={day.date} issues={dayIssues} />
+              <TaskCalendarDay issues={dayIssues} />
             </CalendarDayButton>
           );
         },
