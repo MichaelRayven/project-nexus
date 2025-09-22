@@ -1,5 +1,5 @@
-import { GetIssuesByLabelQuery } from "../graphql/types";
+import { GetAllRepositoryIssuesQuery } from "../graphql/types";
 
 export type IssueNode = NonNullable<
-  NonNullable<GetIssuesByLabelQuery["repository"]>["issues"]["nodes"]
+  NonNullable<GetAllRepositoryIssuesQuery["repository"]>["issues"]["nodes"]
 >[number];

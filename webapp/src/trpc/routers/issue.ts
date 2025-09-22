@@ -1,8 +1,8 @@
 import { db } from "@/db";
 import { githubGraphQL } from "@/graphql/client";
 import { CreateLinkedBranch } from "@/graphql/mutations";
-import { GetIssueByNumber, GetIssuesByLabel } from "@/graphql/queries";
-import { GetIssuesByLabelQuery } from "@/graphql/types";
+import { GetIssueByNumber, GetAllRepositoryIssues } from "@/graphql/queries";
+import { GetAllRepositoryIssuesQuery } from "@/graphql/types";
 import { CreateLinkedBranchMutation } from "@/lib/github-types";
 import { IssueNode } from "@/lib/interface";
 import {
@@ -15,11 +15,43 @@ import { addDays, format, parse } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import { z } from "zod";
+import { unstable_cache, revalidateTag } from "next/cache";
 import {
   authedProcedure,
   collaboratorProcedure,
   createTRPCRouter,
 } from "../init";
+
+// Cache all repository issues for 5 minutes
+const getAllRepositoryIssues = unstable_cache(
+  async (): Promise<IssueNode[]> => {
+    try {
+      const result = await githubGraphQL.request<GetAllRepositoryIssuesQuery>(
+        GetAllRepositoryIssues,
+        {
+          owner: process.env.GITHUB_REPOSITORY_OWNER!,
+          name: process.env.GITHUB_REPOSITORY_NAME!,
+          first: 100,
+          orderBy: { field: "CREATED_AT", direction: "DESC" },
+        }
+      );
+
+      console.log("result", result);
+
+      return (result.repository?.issues.nodes || []).filter(
+        (issue): issue is NonNullable<typeof issue> => issue !== null
+      );
+    } catch (error) {
+      console.error("GraphQL error:", error);
+      return [];
+    }
+  },
+  ["all-repository-issues"],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ["issues"],
+  }
+);
 
 export const issueRouter = createTRPCRouter({
   issueByNumber: authedProcedure
@@ -62,24 +94,13 @@ export const issueRouter = createTRPCRouter({
         "MM-dd-yyyy"
       )}`;
 
-      try {
-        const result = await githubGraphQL.request<GetIssuesByLabelQuery>(
-          GetIssuesByLabel,
-          {
-            owner: process.env.GITHUB_REPOSITORY_OWNER,
-            name: process.env.GITHUB_REPOSITORY_NAME,
-            labels: [deadlineLabel],
-            first: 100,
-            orderBy: { field: "CREATED_AT", direction: "DESC" },
-          }
-        );
+      // Get all issues from cache
+      const allIssues = await getAllRepositoryIssues();
 
-        const issues = result.repository?.issues.nodes || [];
-        return issues;
-      } catch (error) {
-        console.error("GraphQL error:", error);
-        throw new Error("Не удалось получить задачи");
-      }
+      // Filter issues by deadline label
+      return allIssues.filter((issue) =>
+        issue?.labels?.nodes?.some((label) => label?.name === deadlineLabel)
+      );
     }),
   issueListWeek: authedProcedure.query(async (): Promise<IssueNode[][]> => {
     // Use a fixed reference date to ensure consistency between server and client
@@ -91,33 +112,52 @@ export const issueRouter = createTRPCRouter({
       });
     });
 
-    const results = await Promise.all(
-      dates.map(async (date) => {
-        const deadlineLabel = `дедлайн:${date}`;
+    // Get all issues from cache
+    const allIssues = await getAllRepositoryIssues();
 
-        try {
-          const result = await githubGraphQL.request<GetIssuesByLabelQuery>(
-            GetIssuesByLabel,
-            {
-              owner: process.env.GITHUB_REPOSITORY_OWNER,
-              name: process.env.GITHUB_REPOSITORY_NAME,
-              labels: [deadlineLabel],
-              first: 100,
-              orderBy: { field: "CREATED_AT", direction: "DESC" },
-            }
-          );
-
-          const issues = result.repository?.issues.nodes || [];
-          return issues;
-        } catch (error) {
-          console.error("GraphQL error for date", date, ":", error);
-          return []; // Return empty array for failed requests
-        }
-      })
-    );
+    // Group issues by date
+    const results = dates.map((date) => {
+      const deadlineLabel = `дедлайн:${date}`;
+      return allIssues.filter((issue) =>
+        issue?.labels?.nodes?.some((label) => label?.name === deadlineLabel)
+      );
+    });
 
     return results;
   }),
+  issueListRange: authedProcedure
+    .input(
+      z.object({
+        startDate: z.number(),
+        endDate: z.number(),
+      })
+    )
+    .query(async (opts): Promise<{ [key: string]: IssueNode[] }> => {
+      const { startDate, endDate } = opts.input;
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dates: string[] = [];
+
+      // Generate all dates in the range
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dates.push(formatInTimeZone(d, TIMEZONE, "MM-dd-yyyy"));
+      }
+
+      // Get all issues from cache
+      const allIssues = await getAllRepositoryIssues();
+
+      // Group issues by date
+      const results: { [key: string]: IssueNode[] } = {};
+      dates.forEach((date) => {
+        const deadlineLabel = `дедлайн:${date}`;
+        results[date] = allIssues.filter((issue) =>
+          issue?.labels?.nodes?.some((label) => label?.name === deadlineLabel)
+        );
+      });
+
+      return results;
+    }),
   issueAdd: collaboratorProcedure
     .input(
       z.object({
@@ -206,6 +246,9 @@ export const issueRouter = createTRPCRouter({
         console.error("GitHub API response:", await response.text());
         throw new Error("Не удалось создать задачу");
       }
+
+      // Invalidate the issues cache when a new issue is created
+      revalidateTag("issues");
 
       return "Задача успешно создана";
     }),

@@ -1,21 +1,23 @@
 "use client";
 
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
-import { Container } from "@/components/ui/layout/container";
 import { cn, getIssueStatus, TIMEZONE } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import Link from "next/link";
-import { useState } from "react";
-import { DateRange } from "react-day-picker";
 
-function TaskCalendarDay({ date }: { date: Date }) {
+function TaskCalendarDay({ date, issues }: { date: Date; issues?: any[] }) {
   const trpc = useTRPC();
 
-  const { data, isPending } = useQuery(
-    trpc.issueListDay.queryOptions({ deadline: date.getTime() })
-  );
+  // Use provided issues if available, otherwise fetch individually
+  const { data, isPending } = useQuery({
+    ...trpc.issueListDay.queryOptions({ deadline: date.getTime() }),
+    enabled: !issues,
+  });
+
+  const displayData = issues || data;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -32,7 +34,7 @@ function TaskCalendarDay({ date }: { date: Date }) {
     }
   };
 
-  if (isPending)
+  if (isPending && !displayData)
     return (
       <ul className="flex flex-col items-start gap-4 py-4">
         <li
@@ -51,7 +53,7 @@ function TaskCalendarDay({ date }: { date: Date }) {
 
   return (
     <ul className="flex flex-col items-start gap-2 py-4">
-      {data?.map((item) => {
+      {displayData?.map((item) => {
         const { status } = getIssueStatus(item);
 
         return (
@@ -78,6 +80,20 @@ function TaskCalendarDay({ date }: { date: Date }) {
 }
 
 export function TaskCalendar({ className }: { className?: string }) {
+  const trpc = useTRPC();
+
+  // Get current month's date range
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const { data: monthIssues } = useQuery(
+    trpc.issueListRange.queryOptions({
+      startDate: startOfMonth.getTime(),
+      endDate: endOfMonth.getTime(),
+    })
+  );
+
   return (
     <Calendar
       mode="single"
@@ -90,6 +106,9 @@ export function TaskCalendar({ className }: { className?: string }) {
       locale={ru}
       components={{
         DayButton: ({ children, modifiers, day, className, ...props }) => {
+          const dateKey = formatInTimeZone(day.date, TIMEZONE, "MM-dd-yyyy");
+          const dayIssues = monthIssues?.[dateKey] || [];
+
           return (
             <CalendarDayButton
               day={day}
@@ -98,7 +117,7 @@ export function TaskCalendar({ className }: { className?: string }) {
               {...props}
             >
               {children}
-              <TaskCalendarDay date={day.date} />
+              <TaskCalendarDay date={day.date} issues={dayIssues} />
             </CalendarDayButton>
           );
         },
