@@ -2,8 +2,10 @@ import { db } from "@/db";
 import { githubGraphQL } from "@/graphql/client";
 import { CreateLinkedBranch } from "@/graphql/mutations";
 import { GetAllRepositoryIssues, GetIssueByNumber } from "@/graphql/queries";
-import { GetAllRepositoryIssuesQuery } from "@/graphql/types";
-import { CreateLinkedBranchMutation } from "@/lib/github-types";
+import {
+  CreateLinkedBranchMutation,
+  GetAllRepositoryIssuesQuery,
+} from "@/graphql/types";
 import { IssueNode } from "@/lib/interface";
 import {
   formatCategory,
