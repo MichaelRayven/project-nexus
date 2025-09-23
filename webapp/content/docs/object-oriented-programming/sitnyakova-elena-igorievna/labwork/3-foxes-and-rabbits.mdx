@@ -1,0 +1,694 @@
+---
+title: Лабораторная работа №3. Лисы и кролики - Объектно-ориентированное программирование
+description: Симуляция экосистемы с лисами и кроликами, демонстрация принципов ООП в C++.
+---
+
+[Требования к заданию](https://nexus.michaelrayven.ru/task/30)  
+
+## Теоретическая основа
+
+### Объектно-ориентированное программирование (ООП)
+
+**Объектно-ориентированное программирование** — это парадигма программирования, основанная на концепции объектов, которые содержат данные (атрибуты) и код (методы). ООП обеспечивает лучшую организацию кода, переиспользование и поддержку.
+
+**Основные принципы ООП:**
+- **Инкапсуляция** — сокрытие внутренней реализации и предоставление интерфейса
+- **Наследование** — создание новых классов на основе существующих
+- **Полиморфизм** — возможность объектов разных типов отвечать на одни и те же сообщения
+- **Абстракция** — выделение существенных характеристик объекта
+
+### Модификаторы доступа в C++
+
+**Модификаторы доступа** определяют видимость членов класса:
+
+- **`public`** — доступны из любого места программы
+- **`protected`** — доступны в классе и его наследниках
+- **`private`** — доступны только внутри класса
+
+```cpp
+class Animal {
+public:     // Публичные методы - интерфейс класса
+    Animal(int x, int y);
+    virtual void move();
+    
+protected:  // Защищенные члены - доступны наследникам
+    int x, y;
+    
+private:    // Приватные члены - только для этого класса
+    bool canTurn() const;
+};
+```
+
+### Ключевое слово `this`
+
+**`this`** — указатель на текущий объект, неявно передается во все нестатические методы класса.
+
+```cpp
+class Animal {
+private:
+    int x, y;
+    
+public:
+    void setPosition(int x, int y) {
+        this->x = x;  // Явное указание на член класса
+        this->y = y;  // Разрешает конфликт имен параметров
+    }
+};
+```
+
+### Виртуальные функции и `override`
+
+**Виртуальные функции** (`virtual`) позволяют реализовать полиморфизм:
+
+```cpp
+class Animal {
+public:
+    virtual void move() = 0;  // Чисто виртуальная функция
+    virtual ~Animal() {}     // Виртуальный деструктор
+};
+
+class Fox : public Animal {
+public:
+    void move() override {    // override гарантирует переопределение
+        // Реализация движения лисы
+    }
+};
+```
+
+**`override`** — ключевое слово, указывающее, что метод переопределяет виртуальную функцию базового класса. Обеспечивает безопасность типов.
+
+## Задание. Симуляция экосистемы "Лисы и кролики"
+
+### Требования
+Создать симуляцию экосистемы, где лисы охотятся на кроликов. Каждое животное имеет:
+- Позицию (x, y)
+- Направление движения
+- Возраст
+- Стабильность (частота поворотов)
+- Специфичное поведение
+
+### Архитектура решения
+
+#### 1. Базовый класс Animal
+
+```cpp
+class Animal {
+public:
+    Animal(int startX, int startY, Direction d, int s)
+        : x(startX), y(startY), direction(d), stability(s), age(0) {}
+    virtual ~Animal() {}
+
+    // Виртуальная функция движения
+    virtual void move(int N, int M) {};
+
+    // Публичные методы
+    void turn() {
+        if (canTurn()) {
+            switch (direction) {
+            case UP:    direction = RIGHT; break;
+            case DOWN:  direction = LEFT;  break;
+            case LEFT:  direction = UP;    break;
+            case RIGHT: direction = DOWN;  break;
+            }
+        }
+    }
+
+    // Геттеры
+    int getAge() const { return age; }
+    int getX() const { return x; }
+    int getY() const { return y; }
+    Direction getDirection() const { return direction; }
+
+    void incrementAge() { age++; }
+    virtual bool canReproduce() const { return false; }
+
+protected:
+    int age;        // Возраст животного
+    int stability;  // Стабильность (частота поворотов)
+    int x, y;       // Координаты
+    Direction direction; // Направление движения
+
+private:
+    bool canTurn() const { return age % stability == 0; }
+};
+```
+
+**Объяснение принципов ООП:**
+
+1. **Инкапсуляция**: 
+   - Приватный метод `canTurn()` скрыт от внешнего мира
+   - Защищенные члены доступны наследникам
+   - Публичные методы предоставляют интерфейс
+
+2. **Наследование**: Классы `Fox` и `Rabbit` наследуют от `Animal`
+
+3. **Полиморфизм**: Виртуальная функция `move()` переопределяется в наследниках
+
+#### 2. Класс Fox (Лиса)
+
+```cpp
+class Fox : public Animal {
+public:
+    Fox(int startX, int startY, Direction d, int s)
+        : Animal(startX, startY, d, s), food(0) {}
+
+    // Переопределение виртуальной функции
+    void move(int N, int M) override {
+        switch (direction) {
+        case UP:    y = (N + (y - 2)) % N; break;
+        case DOWN:  y = (y + 2) % N;        break;
+        case LEFT:  x = (M + (x - 2)) % M;  break;
+        case RIGHT: x = (x + 2) % M;        break;
+        }
+    }
+
+    // Переопределение виртуальной функции
+    bool canReproduce() const override { 
+        return food >= 2; 
+    }
+
+    Fox reproduce() {
+        food = 0;
+        return Fox(x, y, direction, stability);
+    }
+
+    void eat(int count) { food += count; }
+    bool isDead() const { return age >= 15; }
+
+private:
+    int food;  // Количество съеденной пищи
+};
+```
+
+**Ключевые особенности:**
+- **`override`**: Гарантирует, что метод переопределяет виртуальную функцию
+- **Переопределение поведения**: Лиса движется на 2 клетки, нужна еда для размножения
+- **Инкапсуляция**: Приватное поле `food` скрыто от внешнего доступа
+
+#### 3. Класс Rabbit (Кролик)
+
+```cpp
+class Rabbit : public Animal {
+public:
+    Rabbit(int startX, int startY, Direction d, int s)
+        : Animal(startX, startY, d, s) {}
+
+    void move(int N, int M) override {
+        switch (direction) {
+        case UP:    y = (N + (y - 1)) % N; break;
+        case DOWN:  y = (y + 1) % N;       break;
+        case LEFT:  x = (M + (x - 1)) % M; break;
+        case RIGHT: x = (x + 1) % M;       break;
+        }
+    }
+
+    bool canReproduce() const override { 
+        return age == 5 || age == 10; 
+    }
+
+    Rabbit reproduce() { 
+        return Rabbit(x, y, direction, stability); 
+    }
+
+    bool isDead() const { return age >= 10; }
+};
+```
+
+**Отличия от Fox:**
+- Движется на 1 клетку (медленнее лисы)
+- Размножается в определенном возрасте
+- Живет меньше лисы
+
+#### 4. Класс Model (Модель экосистемы)
+
+```cpp
+class Model {
+public:
+    Model(int width, int height, int steps) 
+        : N(height), M(width), K(steps) {
+        // Выделение памяти для двумерного массива
+        field = new int *[height];
+        for (int i = 0; i < height; i++) {
+            field[i] = new int[width];
+        }
+        clearField();
+    }
+
+    ~Model() {
+        // Освобождение памяти
+        for (int i = 0; i < N; i++) {
+            delete[] field[i];
+        }
+        delete[] field;
+    }
+
+    void addFox(Fox fox) {
+        foxes.push_back(fox);
+        field[fox.getY()][fox.getX()]--;
+    }
+
+    void addRabbit(Rabbit rabbit) {
+        rabbits.push_back(rabbit);
+        field[rabbit.getY()][rabbit.getX()]++;
+    }
+
+    void step() {
+        clearField();
+        
+        // Движение кроликов
+        for (int i = 0; i < rabbits.size(); i++) {
+            rabbits[i].move(N, M);
+            field[rabbits[i].getY()][rabbits[i].getX()]++;
+            rabbits[i].incrementAge();
+            rabbits[i].turn();
+        }
+
+        // Движение лис и охота
+        for (int i = 0; i < foxes.size(); i++) {
+            foxes[i].move(N, M);
+
+            // Проверка на наличие кроликов
+            if (field[foxes[i].getY()][foxes[i].getX()] > 0) {
+                foxes[i].eat(field[foxes[i].getY()][foxes[i].getX()]);
+                field[foxes[i].getY()][foxes[i].getX()] = 0;
+
+                // Удаление съеденных кроликов
+                for (int j = 0; j < rabbits.size(); j++) {
+                    if (rabbits[j].getX() == foxes[i].getX() &&
+                        rabbits[j].getY() == foxes[i].getY()) {
+                        rabbits.erase(rabbits.begin() + j);
+                        j--;
+                    }
+                }
+            }
+
+            field[foxes[i].getY()][foxes[i].getX()]--;
+            foxes[i].incrementAge();
+            foxes[i].turn();
+
+            // Размножение и смерть
+            if (foxes[i].canReproduce()) {
+                addFox(foxes[i].reproduce());
+            }
+            if (foxes[i].isDead()) {
+                foxes.erase(foxes.begin() + i);
+                i--;
+            }
+        }
+
+        // Размножение и смерть кроликов
+        for (int i = 0; i < rabbits.size(); i++) {
+            if (rabbits[i].canReproduce()) {
+                addRabbit(rabbits[i].reproduce());
+            }
+            if (rabbits[i].isDead()) {
+                rabbits.erase(rabbits.begin() + i);
+                i--;
+            }
+        }
+    }
+
+private:
+    int N, M, K;  // Размеры поля и количество шагов
+    int **field; // Двумерный массив для отслеживания позиций
+    vector<Fox> foxes;
+    vector<Rabbit> rabbits;
+
+    void clearField() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
+                field[i][j] = 0;
+            }
+        }
+    }
+};
+```
+
+## Объяснение принципов ООП в коде
+
+### 1. Инкапсуляция
+- **Приватные члены**: `canTurn()` в классе `Animal` скрыт от внешнего доступа
+- **Защищенные члены**: `age`, `x`, `y`, `direction` доступны наследникам
+- **Публичные методы**: Предоставляют контролируемый интерфейс
+
+### 2. Наследование
+- **Базовый класс**: `Animal` определяет общее поведение
+- **Производные классы**: `Fox` и `Rabbit` наследуют и расширяют функциональность
+- **Конструкторы**: Используют список инициализации для вызова конструктора базового класса
+
+### 3. Полиморфизм
+- **Виртуальные функции**: `move()` и `canReproduce()` переопределяются в наследниках
+- **`override`**: Гарантирует корректное переопределение виртуальных функций
+- **Виртуальный деструктор**: Обеспечивает правильное освобождение памяти
+
+### 4. Абстракция
+- **Интерфейс**: Публичные методы скрывают сложность реализации
+- **Модель данных**: Класс `Model` абстрагирует сложность симуляции экосистемы
+
+## Ключевые особенности C++ синтаксиса
+
+### Модификаторы доступа
+```cpp
+class Example {
+public:     // Доступ везде
+    void publicMethod();
+    
+protected: // Доступ в классе и наследниках
+    int protectedMember;
+    
+private:   // Доступ только в классе
+    void privateMethod();
+};
+```
+
+### Ключевое слово `this`
+```cpp
+class Point {
+private:
+    int x, y;
+    
+public:
+    void setX(int x) {
+        this->x = x;  // Разрешает конфликт имен
+    }
+};
+```
+
+### Виртуальные функции
+```cpp
+class Base {
+public:
+    virtual void method() = 0;  // Чисто виртуальная
+    virtual ~Base() {}          // Виртуальный деструктор
+};
+
+class Derived : public Base {
+public:
+    void method() override {    // override для безопасности
+        // Реализация
+    }
+};
+```
+
+### Наследование
+```cpp
+class Base {
+    // Базовый класс
+};
+
+class Derived : public Base {  // public наследование
+    // Производный класс
+};
+```
+
+## Полный код программы
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+enum Direction { UP = 0, DOWN = 2, LEFT = 3, RIGHT = 1 };
+
+class Animal {
+public:
+    Animal(int startX, int startY, Direction d, int s)
+        : x(startX), y(startY), direction(d), stability(s), age(0) {}
+    virtual ~Animal() {}
+
+    virtual void move(int N, int M) = 0;
+
+    void turn() {
+        if (canTurn()) {
+            switch (direction) {
+            case UP:
+                direction = RIGHT;
+                break;
+            case DOWN:
+                direction = LEFT;
+                break;
+            case LEFT:
+                direction = UP;
+                break;
+            case RIGHT:
+                direction = DOWN;
+                break;
+            }
+        }
+    }
+
+    int getAge() const { return age; }
+    int getStability() const { return stability; }
+    int getX() const { return x; }
+    int getY() const { return y; }
+    Direction getDirection() const { return direction; }
+
+    void incrementAge() { age++; }
+    virtual bool canReproduce() const { return false; }
+
+protected:
+    int age;
+    int stability;
+    int x, y;
+    Direction direction;
+
+private:
+    bool canTurn() const { return age % stability == 0; }
+};
+
+class Fox : public Animal {
+public:
+    Fox(int startX, int startY, Direction d, int s)
+        : Animal(startX, startY, d, s), food(0) {}
+
+    void move(int N, int M) override {
+        switch (direction) {
+        case UP:
+            y = (N + (y - 2)) % N;
+            break;
+        case DOWN:
+            y = (y + 2) % N;
+            break;
+        case LEFT:
+            x = (M + (x - 2)) % M;
+            break;
+        case RIGHT:
+            x = (x + 2) % M;
+            break;
+        }
+    }
+
+    bool canReproduce() const override { return food >= 2; }
+
+    Fox reproduce() {
+        food = 0;
+        return Fox(x, y, direction, stability);
+    }
+
+    void eat(int count) { food += count; }
+    bool isDead() const { return age >= 15; }
+
+private:
+    int food;
+};
+
+class Rabbit : public Animal {
+public:
+    Rabbit(int startX, int startY, Direction d, int s)
+        : Animal(startX, startY, d, s) {}
+
+    void move(int N, int M) override {
+        switch (direction) {
+        case UP:
+            y = (N + (y - 1)) % N;
+            break;
+        case DOWN:
+            y = (y + 1) % N;
+            break;
+        case LEFT:
+            x = (M + (x - 1)) % M;
+            break;
+        case RIGHT:
+            x = (x + 1) % M;
+            break;
+        }
+    }
+
+    bool canReproduce() const override { return age == 5 || age == 10; }
+
+    Rabbit reproduce() { return Rabbit(x, y, direction, stability); }
+
+    bool isDead() const { return age >= 10; }
+};
+
+class Model {
+public:
+    Model(int width, int height, int steps) : N(height), M(width), K(steps) {
+        field = new int *[height];
+        for (int i = 0; i < height; i++) {
+            field[i] = new int[width];
+        }
+        clearField();
+    }
+
+    ~Model() {
+        for (int i = 0; i < N; i++) {
+            delete[] field[i];
+        }
+        delete[] field;
+    }
+
+    void addFox(Fox fox) {
+        foxes.push_back(fox);
+        field[fox.getY()][fox.getX()]--;
+    }
+
+    void addRabbit(Rabbit rabbit) {
+        rabbits.push_back(rabbit);
+        field[rabbit.getY()][rabbit.getX()]++;
+    }
+
+    void step() {
+        clearField();
+
+        // Rabbits movement
+        for (int i = 0; i < rabbits.size(); i++) {
+            rabbits[i].move(N, M);
+            field[rabbits[i].getY()][rabbits[i].getX()]++;
+            rabbits[i].incrementAge();
+            rabbits[i].turn();
+        }
+
+        // Foxes movement and feeding
+        for (int i = 0; i < foxes.size(); i++) {
+            foxes[i].move(N, M);
+
+            if (field[foxes[i].getY()][foxes[i].getX()] > 0) {
+                foxes[i].eat(field[foxes[i].getY()][foxes[i].getX()]);
+                field[foxes[i].getY()][foxes[i].getX()] = 0;
+
+                // Delete eaten rabbits
+                for (int j = 0; j < rabbits.size(); j++) {
+                    if (rabbits[j].getX() == foxes[i].getX() &&
+                        rabbits[j].getY() == foxes[i].getY()) {
+                        rabbits.erase(rabbits.begin() + j);
+                        j--;
+                    }
+                }
+            }
+
+            field[foxes[i].getY()][foxes[i].getX()]--;
+            foxes[i].incrementAge();
+            foxes[i].turn();
+
+            if (foxes[i].canReproduce()) {
+                addFox(foxes[i].reproduce());
+            }
+
+            if (foxes[i].isDead()) {
+                foxes.erase(foxes.begin() + i);
+                i--;
+            }
+        }
+
+        for (int i = 0; i < rabbits.size(); i++) {
+            if (rabbits[i].canReproduce()) {
+                addRabbit(rabbits[i].reproduce());
+            }
+
+            if (rabbits[i].isDead()) {
+                rabbits.erase(rabbits.begin() + i);
+                i--;
+            }
+        }
+    }
+
+    void simulate() {
+        for (int i = 0; i < K; i++) {
+            step();
+        }
+    }
+
+    void write(string filename) {
+        FILE *outfile = fopen(filename.c_str(), "w");
+        if (outfile == nullptr) {
+            cout << "Error opening output file" << endl;
+            return;
+        }
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
+                if (field[i][j] == 0) {
+                    fprintf(outfile, "*");
+                } else {
+                    fprintf(outfile, "%d", field[i][j]);
+                }
+            }
+            fprintf(outfile, "\n");
+        }
+        fclose(outfile);
+    }
+
+    void print() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
+                if (field[i][j] == 0) {
+                    cout << "*";
+                } else {
+                    cout << field[i][j];
+                }
+            }
+            cout << endl;
+        }
+    }
+
+private:
+    int N, M, K;
+    int **field;
+    vector<Fox> foxes;
+    vector<Rabbit> rabbits;
+
+    void clearField() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < M; j++) {
+                field[i][j] = 0;
+            }
+        }
+    }
+};
+
+int main() {
+    FILE *file = fopen("input.txt", "r");
+    if (file == nullptr) {
+        cout << "Error opening file" << endl;
+        return 1;
+    }
+
+    int N, M, K, R, F;
+    fscanf(file, "%d %d %d %d %d", &N, &M, &K, &R, &F);
+
+    Model model(N, M, K);
+
+    for (int i = 0; i < R; i++) {
+        int x, y, d, s;
+        fscanf(file, "%d %d %d %d", &x, &y, &d, &s);
+        model.addRabbit(Rabbit(x, y, Direction(d), s));
+    }
+
+    for (int i = 0; i < F; i++) {
+        int x, y, d, s;
+        fscanf(file, "%d %d %d %d", &x, &y, &d, &s);
+        model.addFox(Fox(x, y, Direction(d), s));
+    }
+
+    fclose(file);
+
+    model.simulate();
+    model.print();
+    model.write("output.txt");
+
+    return 0;
+}
+```
