@@ -4,7 +4,6 @@ import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { cn, getIssueStatus, TIMEZONE } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { isSameMonth } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { ru } from "date-fns/locale";
 import Link from "next/link";
