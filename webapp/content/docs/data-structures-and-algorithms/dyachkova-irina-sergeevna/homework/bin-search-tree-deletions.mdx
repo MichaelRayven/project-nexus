@@ -1,0 +1,438 @@
+---
+title: Удаление элементов из двоичного дерева поиска
+description: Реализация алгоритма удаления элементов из двоичного дерева поиска с сохранением свойств BST.
+---
+
+[Требования к заданию](https://nexus.michaelrayven.ru/task/35)  
+[Пособие стр. 41](https://drive.google.com/file/d/15siqjB_PpTFHuq4GM_NuahQenBEzU-6e/view?usp=sharing)
+
+### Алгоритм удаления
+
+Удаление элемента из BST имеет три основных случая:
+
+1. **Узел без дочерних узлов (лист)** — удаляем узел
+2. **Узел с одним дочерним узлом** — заменяем удаляемый узел его дочерним узлом
+3. **Узел с двумя дочерними узлами** — заменяем удаляемый узел его преемником
+
+### Домашнее задание
+
+Для построенного из 12 первых последовательных неповторяющихся
+символов ФИО студента случайного дерева поиска (СДП) выполнить
+удаление всех вершин (в том же порядке, как и при построении).
+
+### Ход выполнения
+
+#### 1. Структура данных и вспомогательные функции
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#define N 50
+
+typedef struct Vertex
+{
+    int Data;
+    struct Vertex *Left;
+    struct Vertex *Right;
+} Vertex;
+```
+
+#### 2. Функция обхода дерева в порядке возрастания значений (для демонстрации)
+
+```c
+void Left_to_Right(Vertex *p)
+{
+    if (p != NULL)
+    {
+        Left_to_Right(p->Left);
+        printf("%d ", p->Data);
+        Left_to_Right(p->Right);
+    }
+}
+```
+
+#### 3. Генератор случайных уникальных чисел
+
+```c
+void generator(int arr[], int n)
+{
+    srand(time(NULL));
+    printf("Генерация случайной последовательности: ");
+    int count = 0;
+    while (count < n)
+    {
+        int num = rand() % 100;
+        int isUnique = 1;
+        for (int i = 0; i < count; i++)
+        {
+            if (arr[i] == num)
+            {
+                isUnique = 0;
+                break;
+            }
+        }
+        if (isUnique)
+        {
+            arr[count] = num;
+            count++;
+            printf("%d ", num);
+        }
+    }
+    printf("\n");
+}
+```
+
+#### 4. Функция добавления элемента в BST
+
+```c
+void add_DoubleSDP(Vertex **p, int Data)
+{
+    while (*p != NULL)
+    {
+        if (Data < (*p)->Data)
+        {
+            p = &((*p)->Left);
+        }
+        else if (Data > (*p)->Data)
+        {
+            p = &((*p)->Right);
+        }
+        else
+        {
+            return; // Элемент уже существует
+        }
+    }
+    if (*p == NULL)
+    {
+        *p = (Vertex *)malloc(sizeof(Vertex));
+        (*p)->Data = Data;
+        (*p)->Left = NULL;
+        (*p)->Right = NULL;
+    }
+}
+```
+
+#### 5. Основная функция удаления элемента
+
+```c
+int delete_SDP(Vertex **p, int Data)
+{
+    // Поиск элемента для удаления
+    while (*p != NULL)
+    {
+        if (Data < (*p)->Data)
+        {
+            p = &((*p)->Left);
+        }
+        else if (Data > (*p)->Data)
+        {
+            p = &((*p)->Right);
+        }
+        else
+        {
+            break; // Элемент найден
+        }
+    }
+
+    // Элемент не найден
+    if (*p == NULL)
+    {
+        return 0;
+    }
+
+    Vertex *q = *p; // Узел для удаления
+
+    // Случай 1: Узел без дочерних узлов или с одним дочерним узлом
+    if (q->Left == NULL)
+    {
+        *p = q->Right;
+    }
+    else if (q->Right == NULL)
+    {
+        *p = q->Left;
+    }
+    else
+    {
+        // Случай 2: Узел с двумя дочерними узлами
+        // Находим преемника (наибольший элемент в левом поддереве)
+        // Можно также использовать наименьший элемент в правом поддереве,
+        // Но мы следуем примеру из лекции
+        Vertex *r = q->Left;
+        Vertex *s = q;
+
+        while (r->Right != NULL)
+        {
+            s = r;
+            r = r->Right;
+        }
+
+        // Перемещаем преемника на место удаляемого узла
+        if (s != q)
+        {
+            s->Right = r->Left;
+        }
+        else
+        {
+            s->Left = r->Left;
+        }
+
+        r->Left = q->Left;
+        r->Right = q->Right;
+        *p = r;
+    }
+
+    free(q);
+    return 1;
+}
+```
+
+#### 6. Основная функция программы
+
+```c
+int main()
+{
+    int initial[N];
+    generator(initial, N);
+    printf("\n");
+
+    // Создание дерева поиска
+    Vertex *SDPRoot = NULL;
+    for (int i = 0; i < N; i++)
+    {
+        add_DoubleSDP(&SDPRoot, initial[i]);
+    }
+
+    printf("Исходное дерево поиска (обход слева направо):\n");
+    Left_to_Right(SDPRoot);
+    printf("\n");
+
+    int toDelete = -1;
+
+    // Интерактивное удаление элементов
+    do {
+        printf("\nВведите вершину для удаления из дерева:\n");
+        scanf("%d", &toDelete);
+
+        if (delete_SDP(&SDPRoot, toDelete))
+        {
+            printf("\nЭлемент %d успешно удален.\n", toDelete);
+            printf("\nОбход дерева после удаления: ");
+            Left_to_Right(SDPRoot);
+            printf("\n");
+        }
+        else
+        {
+            printf("Элемент %d не найден в дереве.\n", toDelete);
+        }
+    } while (toDelete >= 0);
+
+    return 0;
+}
+```
+
+### Анализ алгоритма
+
+#### Временная сложность
+
+- **Поиск элемента**: O(h), где h — высота дерева
+- **Удаление элемента**: O(h)
+- **Общая сложность**: O(h)
+
+В сбалансированном дереве h = O(log n), в худшем случае h = O(n).
+
+#### Пространственная сложность
+
+- O(1) дополнительной памяти для операции удаления
+- O(h) для рекурсивных вызовов (в данном случае используется итеративный подход)
+
+### Особенности реализации
+
+1. **Использование двойных указателей** — позволяет изменять структуру дерева
+2. **Итеративный поиск** — избегает рекурсии и связанных с ней накладных расходов
+3. **Поиск преемника** — для узлов с двумя дочерними элементами
+4. **Проверка существования элемента** — возврат кода ошибки при отсутствии элемента
+
+### Тестирование
+
+Программа генерирует случайную последовательность из 50 уникальных чисел, строит BST и позволяет интерактивно удалять элементы с выводом результата. Ввод отрицательного цисла завершает программу.
+
+### Полный текст программы
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#define N 50
+
+typedef struct Vertex
+{
+    int Data;
+    struct Vertex *Left;
+    struct Vertex *Right;
+} Vertex;
+
+void Left_to_Right(Vertex *p)
+{
+    if (p != NULL)
+    {
+        Left_to_Right(p->Left);
+        printf("%d ", p->Data);
+        Left_to_Right(p->Right);
+    }
+}
+
+void generator(int arr[], int n)
+{
+    srand(time(NULL));
+    printf("Генерация случайной последовательности: ");
+    int count = 0;
+    while (count < n)
+    {
+        int num = rand() % 100;
+        int isUnique = 1;
+        for (int i = 0; i < count; i++)
+        {
+            if (arr[i] == num)
+            {
+                isUnique = 0;
+                break;
+            }
+        }
+        if (isUnique)
+        {
+            arr[count] = num;
+            count++;
+            printf("%d ", num);
+        }
+    }
+    printf("\n");
+}
+
+void add_DoubleSDP(Vertex **p, int Data)
+{
+    while (*p != NULL)
+    {
+        if (Data < (*p)->Data)
+        {
+            p = &((*p)->Left);
+        }
+        else if (Data > (*p)->Data)
+        {
+            p = &((*p)->Right);
+        }
+        else
+        {
+            return;
+        }
+    }
+    if (*p == NULL)
+    {
+        *p = (Vertex *)malloc(sizeof(Vertex));
+        (*p)->Data = Data;
+        (*p)->Left = NULL;
+        (*p)->Right = NULL;
+    }
+}
+
+int delete_SDP(Vertex **p, int Data)
+{
+    while (*p != NULL)
+    {
+        if (Data < (*p)->Data)
+        {
+            p = &((*p)->Left);
+        }
+        else if (Data > (*p)->Data)
+        {
+            p = &((*p)->Right);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (*p == NULL)
+    {
+        return 0;
+    }
+
+    Vertex *q = *p;
+
+    if (q->Left == NULL)
+    {
+        *p = q->Right;
+    }
+    else if (q->Right == NULL)
+    {
+        *p = q->Left;
+    }
+    else
+    {
+        Vertex *r = q->Left;
+        Vertex *s = q;
+
+        while (r->Right != NULL)
+        {
+            s = r;
+            r = r->Right;
+        }
+
+        if (s != q)
+        {
+            s->Right = r->Left;
+        }
+        else
+        {
+            s->Left = r->Left;
+        }
+
+        r->Left = q->Left;
+        r->Right = q->Right;
+        *p = r;
+    }
+
+    free(q);
+    return 1;
+}
+
+int main()
+{
+    int initial[N];
+    generator(initial, N);
+    printf("\n");
+
+    Vertex *SDPRoot = NULL;
+    for (int i = 0; i < N; i++)
+    {
+        add_DoubleSDP(&SDPRoot, initial[i]);
+    }
+
+    printf("Исходное дерево поиска (обход слева направо):\n");
+    Left_to_Right(SDPRoot);
+    printf("\n");
+
+    int toDelete = -1;
+
+    do {
+        printf("\nВведите вершину для удаления из дерева:\n");
+        scanf("%d", &toDelete);
+
+        if (delete_SDP(&SDPRoot, toDelete))
+        {
+            printf("\nЭлемент %d успешно удален.\n", toDelete);
+
+            printf("\nОбход дерева после удаления: ");
+            Left_to_Right(SDPRoot);
+            printf("\n");
+        }
+        else
+        {
+            printf("Элемент %d не найден в дереве.\n", toDelete);
+        }
+    } while (toDelete >= 0);
+
+    return 0;
+}
+```
