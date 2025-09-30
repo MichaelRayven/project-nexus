@@ -1,0 +1,679 @@
+---
+title: АВЛ-деревья (сбалансированные по высоте деревья поиска)
+description: Изучение АВЛ-деревьев, их свойств, алгоритмов балансировки и сравнение с идеально сбалансированными деревьями поиска.
+---
+
+[Требования к заданию](https://nexus.michaelrayven.ru/task/37)  
+[Пособие стр. 52](https://mvbyikaixguyadefinpu.storage.supabase.co/storage/v1/object/public/files/b72bc254fc380ed13ba1f47c8bf6221b6492a9f539dc36a755dce6390bb10f23.pdf)
+
+### Теоретическая основа
+
+**АВЛ-дерево** (названо в честь изобретателей Г. М. Адельсон-Вельского и Е. М. Ландиса, 1962) — это двоичное дерево поиска, которое является сбалансированным по высоте. Дерево называется сбалансированным по высоте, если для каждой его вершины высоты левого и правого поддеревьев отличаются не более чем на 1.
+
+**Свойства АВЛ-дерева:**
+
+1. Для любой вершины: |h_left - h_right| ≤ 1
+2. Высота АВЛ-дерева с n вершинами: log₂(n+1) ≤ h_AVL(n) < 1.44·log₂(n+2) - 0.328
+3. АВЛ-дерево никогда не превышает ИСДП по высоте более чем на 45%
+4. ИСДП является также АВЛ-деревом, но обратное неверно
+
+**Показатель баланса (Balance):**
+
+- -1: левое поддерево на единицу выше правого
+- 0: высоты поддеревьев одинаковы
+- 1: правое поддерево на единицу выше левого
+
+### Алгоритмы балансировки
+
+При нарушении баланса используются четыре типа поворотов:
+
+- LL-поворот (лево-левый)
+- RR-поворот (право-правый)
+- LR-поворот (лево-правый)
+- RL-поворот (право-левый)
+
+### Ход выполнения
+
+#### 1. Структура данных АВЛ-дерева
+
+```c
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 100
+#define LIMIT 1000
+
+typedef struct Vertex {
+    int data;
+    int balance;  // Показатель баланса: -1, 0, 1
+    struct Vertex *left;
+    struct Vertex *right;
+} Vertex;
+```
+
+#### 2. Вспомогательные функции для анализа дерева
+
+```c
+int tree_height(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    int lh = tree_height(root->left);
+    int rh = tree_height(root->right);
+    return 1 + (lh > rh ? lh : rh);
+}
+
+int tree_checksum(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return root->data + tree_checksum(root->left) + tree_checksum(root->right);
+}
+
+int tree_size(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return 1 + tree_size(root->left) + tree_size(root->right);
+}
+
+int tree_sum_path_lengths(Vertex *root, int depth) {
+    if (root == NULL) {
+        return 0;
+    }
+    return depth + tree_sum_path_lengths(root->left, depth + 1) +
+           tree_sum_path_lengths(root->right, depth + 1);
+}
+
+float tree_average_height(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return (float)tree_sum_path_lengths(root, 1) / tree_size(root);
+}
+```
+
+#### 3. Функции поворотов для балансировки
+
+```c
+// LL-поворот (лево-левый)
+void ll_rotation(Vertex *&p) {
+    Vertex *q = p->left;
+    q->balance = 0;
+    p->balance = 0;
+    p->left = q->right;
+    q->right = p;
+    p = q;
+}
+
+// RR-поворот (право-правый)
+void rr_rotation(Vertex *&p) {
+    Vertex *q = p->right;
+    q->balance = 0;
+    p->balance = 0;
+    p->right = q->left;
+    q->left = p;
+    p = q;
+}
+
+// LR-поворот (лево-правый)
+void lr_rotation(Vertex *&p) {
+    Vertex *q = p->left, *r = q->right;
+    if (r->balance < 0) {
+        p->balance = 1;
+    } else {
+        p->balance = 0;
+    }
+
+    if (r->balance > 0) {
+        q->balance = -1;
+    } else {
+        q->balance = 0;
+    }
+
+    r->balance = 0;
+    p->left = r->right;
+    q->right = r->left;
+    r->left = q;
+    r->right = p;
+    p = r;
+}
+
+// RL-поворот (право-левый)
+void rl_rotation(Vertex *&p) {
+    Vertex *q = p->right, *r = q->left;
+    if (r->balance < 0) {
+        p->balance = 1;
+    } else {
+        p->balance = 0;
+    }
+
+    if (r->balance > 0) {
+        q->balance = -1;
+    } else {
+        q->balance = 0;
+    }
+
+    r->balance = 0;
+    p->right = r->left;
+    q->left = r->right;
+    r->right = q;
+    r->left = p;
+    p = r;
+}
+```
+
+#### 4. Алгоритм вставки в АВЛ-дерево
+
+```c
+bool insert_AVL(int D, Vertex *&p) {
+    bool growth = false;
+
+    if (p == nullptr) {
+        // Создание нового узла
+        p = new Vertex();
+        p->data = D;
+        p->balance = 0;
+        p->left = nullptr;
+        p->right = nullptr;
+        growth = true;
+    } else {
+        if (p->data > D) {
+            // Вставка в левое поддерево
+            growth = insert_AVL(D, p->left);
+            if (growth) {
+                if (p->balance > 0) {
+                    p->balance = 0;
+                    growth = false;
+                } else if (p->balance == 0) {
+                    p->balance = -1;
+                } else {
+                    // Нарушение баланса - нужен поворот
+                    if (p->left->balance < 0) {
+                        ll_rotation(p);
+                    } else {
+                        lr_rotation(p);
+                    }
+                    growth = false;
+                }
+            }
+        } else if (p->data < D) {
+            // Вставка в правое поддерево
+            growth = insert_AVL(D, p->right);
+            if (growth) {
+                if (p->balance < 0) {
+                    p->balance = 0;
+                    growth = false;
+                } else if (p->balance == 0) {
+                    p->balance = 1;
+                } else {
+                    // Нарушение баланса - нужен поворот
+                    if (p->right->balance > 0) {
+                        rr_rotation(p);
+                    } else {
+                        rl_rotation(p);
+                    }
+                    growth = false;
+                }
+            }
+        } else {
+            // Дубликат - не вставляем
+            growth = false;
+        }
+    }
+
+    return growth;
+}
+```
+
+#### 5. Функции для построения ИСДП (для сравнения)
+
+```c
+int compare_ints(const void *a, const void *b) {
+    return (*(int*)a - *(int*)b);
+}
+
+Vertex* build_ISDP(int A[], int L, int R) {
+    if (L > R) {
+        return NULL;
+    } else {
+        int m = (L + R) / 2;
+        Vertex* p = (Vertex *)malloc(sizeof(Vertex));
+        p->data = A[m];
+        p->balance = 0;  // Для ИСДП баланс не важен
+        p->left = build_ISDP(A, L, m - 1);
+        p->right = build_ISDP(A, m + 1, R);
+        return p;
+    }
+}
+
+Vertex* build_balanced_bst(int arr[], int n) {
+    qsort(arr, n, sizeof(int), compare_ints);
+    return build_ISDP(arr, 0, n - 1);
+}
+```
+
+#### 6. Функции обхода дерева
+
+```c
+void tree_traversal_downward(Vertex *root) {
+    if (root != NULL) {
+        printf("%d ", root->data);
+        tree_traversal_downward(root->left);
+        tree_traversal_downward(root->right);
+    }
+}
+
+void tree_traversal_rightward(Vertex *root) {
+    if (root != NULL) {
+        tree_traversal_rightward(root->left);
+        printf("%d ", root->data);
+        tree_traversal_rightward(root->right);
+    }
+}
+
+void tree_traversal_upward(Vertex *root) {
+    if (root != NULL) {
+        tree_traversal_upward(root->left);
+        tree_traversal_upward(root->right);
+        printf("%d ", root->data);
+    }
+}
+```
+
+#### 7. Генератор случайных уникальных чисел
+
+```c
+void generate_random_ints(int arr[], int n) {
+    srand(time(NULL));
+    for (int i = 0; i < n; i++) {
+        bool exists = false;
+        int value = (rand() % LIMIT) + 1;
+        for (int j = 0; j < i; j++) {
+            if (arr[j] == value) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            arr[i] = value;
+        } else {
+            i--;  // Повторить попытку
+        }
+    }
+}
+```
+
+### Анализ алгоритмов
+
+#### Временная сложность
+
+- **Вставка в АВЛ-дерево**: O(log n) - гарантированная высота
+- **Поиск в АВЛ-дереве**: O(log n) - гарантированная высота
+- **Балансировка**: O(1) - константное время для поворотов
+
+#### Пространственная сложность
+
+- O(n) для хранения дерева
+- O(log n) для рекурсивных вызовов при вставке
+
+### Сравнение АВЛ и ИСДП
+
+| Характеристика        | АВЛ-дерево         | ИСДП               |
+| --------------------- | ------------------ | ------------------ |
+| Высота                | h ≤ 1.44·log₂(n+2) | h = ⌊log₂(n+1)⌋    |
+| Время построения      | O(n log n)         | O(n log n)         |
+| Время вставки         | O(log n)           | O(n) - перестройка |
+| Простота реализации   | Средняя            | Простая            |
+| Динамические операции | Эффективные        | Неэффективные      |
+
+### Основная программа
+
+```c
+int main() {
+    int large_array[N];
+    generate_random_ints(large_array, N);
+
+    printf("Building AVL tree from %d random vertices:\n", N);
+    printf("Generated numbers: ");
+    for (int i = 0; i < N; i++) {
+        printf("%d ", large_array[i]);
+    }
+    printf("\n");
+
+    // Построение ИСДП для сравнения
+    Vertex* isdp_tree = build_balanced_bst(large_array, N);
+
+    // Построение АВЛ-дерева
+    Vertex* avl_tree = nullptr;
+    for (int i = 0; i < N; i++) {
+        insert_AVL(large_array[i], avl_tree);
+    }
+
+    printf("\nUp-to-down traversal of AVL tree: ");
+    tree_traversal_downward(avl_tree);
+    printf("\n");
+
+    printf("\nUp-to-down traversal of ISDP tree: ");
+    tree_traversal_downward(isdp_tree);
+    printf("\n");
+
+    printf("\nLeft-to-right traversal of AVL tree: ");
+    tree_traversal_rightward(avl_tree);
+    printf("\n");
+
+    printf("\nComparison of ISDP and AVL tree characteristics:\n");
+    printf("n=100  Size      Checksum    Height  Avg.Height\n");
+    printf("--------------------------------------------------\n");
+    printf("ISDP   %-8d %-11d %-7d %.2f\n",
+           tree_size(isdp_tree), tree_checksum(isdp_tree),
+           tree_height(isdp_tree), tree_average_height(isdp_tree));
+    printf("AVL    %-8d %-11d %-7d %.2f\n",
+           tree_size(avl_tree), tree_checksum(avl_tree),
+           tree_height(avl_tree), tree_average_height(avl_tree));
+
+    return 0;
+}
+```
+
+### Полный текст программы
+
+```c
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 100
+#define LIMIT 1000
+
+typedef struct Vertex {
+    int data;
+    int balance;
+    struct Vertex *left;
+    struct Vertex *right;
+} Vertex;
+
+int tree_height(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    int lh = tree_height(root->left);
+    int rh = tree_height(root->right);
+    return 1 + (lh > rh ? lh : rh);
+}
+
+int tree_checksum(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return root->data + tree_checksum(root->left) + tree_checksum(root->right);
+}
+
+int tree_size(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return 1 + tree_size(root->left) + tree_size(root->right);
+}
+
+int tree_sum_path_lengths(Vertex *root, int depth) {
+    if (root == NULL) {
+        return 0;
+    }
+    return depth + tree_sum_path_lengths(root->left, depth + 1) +
+           tree_sum_path_lengths(root->right, depth + 1);
+}
+
+float tree_average_height(Vertex *root) {
+    if (root == NULL) {
+        return 0;
+    }
+    return (float)tree_sum_path_lengths(root, 1) / tree_size(root);
+}
+
+int compare_ints(const void *a, const void *b) {
+    return (*(int*)a - *(int*)b);
+}
+
+Vertex* build_ISDP(int A[], int L, int R) {
+    if (L > R) {
+        return NULL;
+    } else {
+        int m = (L + R) / 2;
+        Vertex* p = (Vertex *)malloc(sizeof(Vertex));
+        p->data = A[m];
+        p->balance = 0;
+        p->left = build_ISDP(A, L, m - 1);
+        p->right = build_ISDP(A, m + 1, R);
+        return p;
+    }
+}
+
+Vertex* build_balanced_bst(int arr[], int n) {
+    qsort(arr, n, sizeof(int), compare_ints);
+    return build_ISDP(arr, 0, n - 1);
+}
+
+void generate_random_ints(int arr[], int n) {
+    srand(time(NULL));
+    for (int i = 0; i < n; i++) {
+        bool exists = false;
+        int value = (rand() % LIMIT) + 1;
+        for (int j = 0; j < i; j++) {
+            if (arr[j] == value) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            arr[i] = value;
+        } else {
+            i--;
+        }
+    }
+}
+
+void tree_traversal_downward(Vertex *root) {
+    if (root != NULL) {
+        printf("%d ", root->data);
+        tree_traversal_downward(root->left);
+        tree_traversal_downward(root->right);
+    }
+}
+
+void tree_traversal_rightward(Vertex *root) {
+    if (root != NULL) {
+        tree_traversal_rightward(root->left);
+        printf("%d ", root->data);
+        tree_traversal_rightward(root->right);
+    }
+}
+
+void tree_traversal_upward(Vertex *root) {
+    if (root != NULL) {
+        tree_traversal_upward(root->left);
+        tree_traversal_upward(root->right);
+        printf("%d ", root->data);
+    }
+}
+
+void ll_rotation(Vertex *&p) {
+    Vertex *q = p->left;
+    q->balance = 0;
+    p->balance = 0;
+    p->left = q->right;
+    q->right = p;
+    p = q;
+}
+
+void rr_rotation(Vertex *&p) {
+    Vertex *q = p->right;
+    q->balance = 0;
+    p->balance = 0;
+    p->right = q->left;
+    q->left = p;
+    p = q;
+}
+
+void lr_rotation(Vertex *&p) {
+    Vertex *q = p->left, *r = q->right;
+    if (r->balance < 0) {
+        p->balance = 1;
+    } else {
+        p->balance = 0;
+    }
+
+    if (r->balance > 0) {
+        q->balance = -1;
+    } else {
+        q->balance = 0;
+    }
+
+    r->balance = 0;
+    p->left = r->right;
+    q->right = r->left;
+    r->left = q;
+    r->right = p;
+    p = r;
+}
+
+void rl_rotation(Vertex *&p) {
+    Vertex *q = p->right, *r = q->left;
+    if (r->balance < 0) {
+        p->balance = 1;
+    } else {
+        p->balance = 0;
+    }
+
+    if (r->balance > 0) {
+        q->balance = -1;
+    } else {
+        q->balance = 0;
+    }
+
+    r->balance = 0;
+    p->right = r->left;
+    q->left = r->right;
+    r->right = q;
+    r->left = p;
+    p = r;
+}
+
+bool insert_AVL(int D, Vertex *&p) {
+    bool growth = false;
+
+    if (p == nullptr) {
+        p = new Vertex();
+        p->data = D;
+        p->balance = 0;
+        p->left = nullptr;
+        p->right = nullptr;
+        growth = true;
+    } else {
+        if (p->data > D) {
+            growth = insert_AVL(D, p->left);
+            if (growth) {
+                if (p->balance > 0) {
+                    p->balance = 0;
+                    growth = false;
+                } else if (p->balance == 0) {
+                    p->balance = -1;
+                } else {
+                    if (p->left->balance < 0) {
+                        ll_rotation(p);
+                    } else {
+                        lr_rotation(p);
+                    }
+                    growth = false;
+                }
+            }
+        } else if (p->data < D) {
+            growth = insert_AVL(D, p->right);
+            if (growth) {
+                if (p->balance < 0) {
+                    p->balance = 0;
+                    growth = false;
+                } else if (p->balance == 0) {
+                    p->balance = 1;
+                } else {
+                    if (p->right->balance > 0) {
+                        rr_rotation(p);
+                    } else {
+                        rl_rotation(p);
+                    }
+                    growth = false;
+                }
+            }
+        } else {
+            growth = false;
+        }
+    }
+
+    return growth;
+}
+
+int main() {
+    int large_array[N];
+    generate_random_ints(large_array, N);
+
+    printf("Building AVL tree from %d random vertices:\n", N);
+    printf("Generated numbers: ");
+    for (int i = 0; i < N; i++) {
+        printf("%d ", large_array[i]);
+    }
+    printf("\n");
+
+    Vertex* isdp_tree = build_balanced_bst(large_array, N);
+
+    Vertex* avl_tree = nullptr;
+    for (int i = 0; i < N; i++) {
+        insert_AVL(large_array[i], avl_tree);
+    }
+
+    printf("\nUp-to-down traversal of AVL tree: ");
+    tree_traversal_downward(avl_tree);
+    printf("\n");
+
+    printf("\nUp-to-down traversal of ISDP tree: ");
+    tree_traversal_downward(isdp_tree);
+    printf("\n");
+
+    printf("\nLeft-to-right traversal of AVL tree: ");
+    tree_traversal_rightward(avl_tree);
+    printf("\n");
+
+    printf("\nComparison of ISDP and AVL tree characteristics:\n");
+    printf("n=100  Size      Checksum    Height  Avg.Height\n");
+    printf("--------------------------------------------------\n");
+    printf("ISDP   %-8d %-11d %-7d %.2f\n",
+           tree_size(isdp_tree), tree_checksum(isdp_tree),
+           tree_height(isdp_tree), tree_average_height(isdp_tree));
+    printf("AVL    %-8d %-11d %-7d %.2f\n",
+           tree_size(avl_tree), tree_checksum(avl_tree),
+           tree_height(avl_tree), tree_average_height(avl_tree));
+
+    return 0;
+}
+```
+
+### Пример вывода
+
+```
+Building AVL tree from 100 random vertices:
+Generated numbers: 366 829 953 352 957 83 462 14 282 513 697 645 183 463 770 207 978 238 82 649 387 35 997 902 56 928 4 527 365 65 771 730 245 75 554 157 543 567 791 408 263 435 590 725 205 148 55 442 581 703 180 615 51 81 23 979 437 901 343 501 671 72 98 97 505 651 253 400 217 395 807 832 830 748 908 34 247 962 827 828 16 358 794 67 438 168 397 226 68 739 79 90 162 176 186 19 178 418 746 185
+
+Up-to-down traversal of AVL tree: 543 186 79 51 19 14 4 16 34 23 35 67 56 55 65 72 68 75 157 90 82 81 83 98 97 148 178 168 162 176 183 180 185 387 253 226 207 205 217 245 238 247 352 282 263 343 365 358 366 438 408 397 395 400 435 418 437 501 462 442 463 513 505 527 748 651 590 567 554 581 645 615 649 725 697 671 703 739 730 746 829 794 771 770 791 827 807 828 957 902 832 830 901 928 908 953 978 962 979 997
+
+Up-to-down traversal of ISPD tree: 397 162 67 34 16 4 14 19 23 55 35 51 56 65 82 75 68 72 79 81 97 83 90 148 98 157 238 185 178 168 176 180 183 207 186 205 217 226 343 253 245 247 263 282 365 352 358 387 366 395 703 513 438 418 400 408 435 437 463 442 462 501 505 590 554 527 543 567 581 649 615 645 671 651 697 829 770 739 725 730 746 748 794 771 791 827 807 828 928 901 830 832 902 908 962 953 957 979 978 997
+
+Left-to-right traversal of AVL tree: 4 14 16 19 23 34 35 51 55 56 65 67 68 72 75 79 81 82 83 90 97 98 148 157 162 168 176 178 180 183 185 186 205 207 217 226 238 245 247 253 263 282 343 352 358 365 366 387 395 397 400 408 418 435 437 438 442 462 463 501 505 513 527 543 554 567 581 590 615 645 649 651 671 697 703 725 730 739 746 748 770 771 791 794 807 827 828 829 830 832 901 902 908 928 953 957 962 978 979 997
+
+Comparison of ISDP and AVL tree characteristics:
+n=100  Size      Checksum    Height  Avg.Height
+--------------------------------------------------
+ISDP   100      45503       7       5.80
+AVL    100      45503       7       5.80
+```
